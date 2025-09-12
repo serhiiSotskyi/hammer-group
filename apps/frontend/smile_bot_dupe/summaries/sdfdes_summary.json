@@ -1,0 +1,29 @@
+{
+  "context": {
+    "user_type": "candidate",
+    "school_interest": "Secondary",
+    "job_type": "SEND Specialist",
+    "name": "Joel Gutu",
+    "email": "sdfdes",
+    "phone": "dkjejwdslfkj",
+    "postcode": "2321312",
+    "script_complete": true,
+    "doc_prompt_sent": false,
+    "documents_checked": true,
+    "final_upload_email_sent": true,
+    "school_type": null,
+    "role_needed": null,
+    "school_name": null,
+    "school_postcode": null,
+    "school_email": null,
+    "school_phone": null,
+    "start_date": null,
+    "contract_length": null,
+    "fte_status": null,
+    "special_requirements": null,
+    "requirements_captured": false,
+    "suggestions_sent": false,
+    "final_closed": false
+  },
+  "closing_message": "\ud83e\udd16 You're welcome!\n\nIt was great assisting you today, and we're looking forward to receiving your documents soon. An email has been sent to your address with a secure link for uploading. Once we've received and verified your documents, we'll start your DBS check and set up your professional profile, making you available to potential employers.\n\nYou've taken the first important step towards your next SEND Specialist role with Smile Education. We're excited to be part of your journey! Remember, our team is here to help you at each stage, so don't hesitate to reach out if you have any other questions or need further assistance.\n\nThank you for choosing Smile Education and have a great day!"
+}

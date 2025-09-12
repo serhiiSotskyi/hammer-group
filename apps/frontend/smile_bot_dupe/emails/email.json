@@ -1,0 +1,5 @@
+{
+  "to": "email",
+  "upload_link": "https://example.com/selection-portal",
+  "summary": "user_type: candidate\nschool_interest: Primary\njob_type: Teaching Assistant\nname: Jel\nemail: email\nphone: 1312321\npostcode: 12132\nscript_complete: True"
+}

@@ -1,0 +1,6 @@
+{
+  "to": "baker@gmail.com",
+  "subject": "Smile Education - Upload Your Documents",
+  "upload_link": "https://example.com/smile-upload-form",
+  "message": "Hi Joel Baker,\n\nThank you for registering with Smile Education!\n\nTo proceed, please upload the following documents:\n- Proof of Identity (e.g. passport or driver\u2019s license)\n- Proof of Address (e.g. utility bill, bank statement)\n- Qualification Certificates\n- DBS Check (Disclosure and Barring Service)\n\nIf you need help with the DBS check, follow the instructions in the form. Let us know if you get stuck!"
+}

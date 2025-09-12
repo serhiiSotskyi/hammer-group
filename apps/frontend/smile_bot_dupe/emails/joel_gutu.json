@@ -1,0 +1,8 @@
+{
+  "to": "sots@gmail.com",
+  "subject": "Smile Registration \u2013 Document Upload",
+  "form_link": "https://example.com/smile-upload-form",
+  "instructions": "Please upload your Proof of ID, Address, Qualifications and request a DBS if needed.",
+  "comment": "Candidate needs help with DBS.",
+  "context_summary": "user_type: candidate\nschool_interest: Secondary\njob_type: SEND Specialist\nname: Joel Gutu\npostcode: W12 4PR\nemail: sots@gmail.com\nphone: 09988899372\nscript_complete: True\ndocuments_checked: True\ndbs_help_confirmed: False\nfinal_upload_email_sent: True"
+}

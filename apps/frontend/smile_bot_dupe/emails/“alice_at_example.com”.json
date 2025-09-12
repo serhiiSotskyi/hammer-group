@@ -1,0 +1,5 @@
+{
+  "to": "\u201calice@example.com\u201d",
+  "upload_link": "https://example.com/smile-upload-form",
+  "summary": "user_type: candidate\nschool_interest: Other\njob_type: SEND Specialist\nname: Alice Smith\nemail: \u201calice@example.com\u201d\nphone: +441234567890\npostcode: W1A 1AA\nscript_complete: True"
+}

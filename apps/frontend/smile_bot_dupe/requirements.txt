@@ -1,0 +1,4 @@
+openai
+colorama
+python-dotenv
+streamlit
