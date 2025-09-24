@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import CollectionsSection from '@/components/CollectionsSection';
-import CustomizerSection from '@/components/CustomizerSection';
+import CustomizerSection from '@/components/InteriorCustomizerSection';
 import AboutSection from '@/components/AboutSection';
 import ContactSection from '@/components/ContactSection';
 import Footer from '@/components/Footer';
@@ -46,13 +46,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      <Navigation />
       <HeroSection />
       <CollectionsSection />
       <CustomizerSection />
       <AboutSection />
       <ContactSection />
-      <Footer />
     </div>
   );
 };

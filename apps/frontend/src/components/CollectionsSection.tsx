@@ -12,7 +12,7 @@ const CollectionsSection = () => {
   const collections = [
     {
       id: 1,
-      title: "Classic Collection",
+      title: "Interior Doors",
       description: "Timeless elegance with traditional European craftsmanship",
       image: classicDoor,
       features: ["Solid Wood", "Glass Inserts", "Brass Hardware"],
@@ -21,7 +21,7 @@ const CollectionsSection = () => {
     },
     {
       id: 2,
-      title: "Modern Collection", 
+      title: "Concealed Doors", 
       description: "Sleek contemporary designs for modern living spaces",
       image: modernDoor,
       features: ["Minimalist Design", "Hidden Hinges", "Smart Lock Ready"],
@@ -30,7 +30,7 @@ const CollectionsSection = () => {
     },
     {
       id: 3,
-      title: "Luxury Collection",
+      title: "Cabinet Furniture",
       description: "Premium materials and exclusive finishes",
       image: luxuryDoor,
       features: ["Premium Wood", "Custom Glass", "Gold Hardware"],

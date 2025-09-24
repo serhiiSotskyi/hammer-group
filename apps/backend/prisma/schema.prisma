@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // or "postgresql" if using Postgres
+  url      = env("DATABASE_URL")
+}
+
+// Categories like Interior Doors, Concealed Doors, Furniture
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+  groups   ParameterGroup[]
+}
+
+// Products inside categories
+model Product {
+  id          Int                 @id @default(autoincrement())
+  name        String
+  description String?
+  basePrice   Float
+  imageUrl    String?
+  categoryId  Int
+  category    Category            @relation(fields: [categoryId], references: [id])
+
+  parameters  ProductParameter[]
+}
+
+// Parameter groups (Door Leaf, Casings, Height, etc.)
+model ParameterGroup {
+  id         Int      @id @default(autoincrement())
+  name       String
+  type       String   // "select", "range", "radio"
+  isRequired Boolean  @default(false)
+
+  // Range support (only used if type = "range")
+  min        Int?
+  max        Int?
+  step       Int?
+
+  categoryId Int
+  category   Category          @relation(fields: [categoryId], references: [id])
+
+  options    ParameterOption[]
+}
+
+// Options inside a group (for select/radio types)
+model ParameterOption {
+  id               Int                @id @default(autoincrement())
+  name             String
+  extraPrice       Float              @default(0)
+
+  groupId          Int
+  group            ParameterGroup     @relation(fields: [groupId], references: [id])
+
+  allowedProducts  ProductParameter[]
+}
+
+// Link table → which products allow which options
+model ProductParameter {
+  id          Int             @id @default(autoincrement())
+  productId   Int
+  optionId    Int
+
+  product     Product         @relation(fields: [productId], references: [id])
+  option      ParameterOption @relation(fields: [optionId], references: [id])
+}
