@@ -1,19 +1,35 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import DoorForm from "./DoorForm";
+import { deleteProduct, getProducts, ProductResponse, resolveImageUrl } from "@/services/api";
 
-async function fetchDoors(categoryId: number) {
-  const res = await fetch(`http://localhost:4000/api/products?categoryId=${categoryId}`);
-  if (!res.ok) throw new Error("Failed to load doors");
-  return res.json();
+function formatCurrency(amountCents: number, currency = "UAH") {
+  return new Intl.NumberFormat("uk-UA", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amountCents / 100);
 }
 
-export default function DoorTable({ categoryId }: { categoryId: number }) {
+type Props = { categoryId?: number; categorySlug?: string; collectionSlug?: string; defaultCollectionId?: number | null };
+
+export default function DoorTable({ categoryId, categorySlug, collectionSlug, defaultCollectionId }: Props) {
   const queryClient = useQueryClient();
+
   const { data: doors, isLoading } = useQuery({
-    queryKey: ["doors", categoryId],
-    queryFn: () => fetchDoors(categoryId),
+    queryKey: ["doors", categoryId ?? categorySlug ?? "all", collectionSlug ?? ""],
+    queryFn: () => {
+      if (categorySlug) return getProducts({ categorySlug, includeInactive: "true", ...(collectionSlug ? { collection: collectionSlug } : {}) });
+      if (categoryId) return getProducts({ categoryId, includeInactive: "true" });
+      return getProducts({ includeInactive: "true" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteProduct(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["doors"] }),
   });
 
   if (isLoading) return <p>Loading...</p>;
@@ -22,28 +38,38 @@ export default function DoorTable({ categoryId }: { categoryId: number }) {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Doors</h2>
-        <DoorForm categoryId={categoryId} />
+        <DoorForm categoryId={categoryId as any} categorySlug={categorySlug} defaultCollectionId={defaultCollectionId ?? undefined} />
       </div>
 
       <div className="grid gap-4">
-        {doors.map((door: any) => (
+        {doors?.map((door: ProductResponse) => (
           <Card key={door.id} className="p-4 flex justify-between items-center">
-            <div>
-              <p className="font-bold">{door.name}</p>
-              <p className="text-sm text-gray-500">€{door.basePrice}</p>
+            <div className="flex items-center gap-3">
+              <img
+                src={resolveImageUrl(door.imageUrl) || "/placeholder.svg"}
+                alt={door.name}
+                className="h-12 w-12 object-cover rounded border"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
+              />
+              <div>
+                <p className="font-bold">{door.name}</p>
+                <p className="text-sm text-gray-500">
+                  {formatCurrency(door.convertedPriceCents ?? door.basePriceCents, door.currency ?? 'UAH')} · <span className="uppercase text-xs">{door.slug}</span>
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
-              <DoorForm categoryId={categoryId} door={door} /> {/* Edit */}
+              <DoorForm categoryId={door.categoryId} categorySlug={categorySlug} door={door} defaultCollectionId={defaultCollectionId ?? undefined} />
               <Button
+                type="button"
                 variant="destructive"
-                onClick={async () => {
-                  await fetch(`http://localhost:4000/api/products/${door.id}`, {
-                    method: "DELETE",
-                  });
-                  queryClient.invalidateQueries({ queryKey: ["doors", categoryId] });
-                }}
+                onClick={() => deleteMutation.mutate(door.id)}
+                disabled={deleteMutation.isPending}
               >
-                Delete
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
               </Button>
             </div>
           </Card>

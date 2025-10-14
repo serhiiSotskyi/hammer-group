@@ -128,7 +128,8 @@
 
 @layer components {
   .hero-text {
-    @apply bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent;
+    /* Flip direction and colors so bright accent sits against darker background */
+    @apply bg-gradient-to-bl from-accent to-primary bg-clip-text text-transparent;
   }
 
   .glass-card {

@@ -1,0 +1,3 @@
+ALTER TABLE "Quote" ADD COLUMN "customerPhone" TEXT;
+ALTER TABLE "Quote" ADD COLUMN "delivered" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Quote" ADD COLUMN "adminNotes" TEXT;

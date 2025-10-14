@@ -1,78 +1,49 @@
-import { Award, Users, Clock, Shield } from 'lucide-react';
+import { Award, Users, Ruler, Building2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 import factoryImage from '@/assets/factory-workshop.jpg';
 
 const AboutSection = () => {
+  const { t } = useTranslation();
   const features = [
-    {
-      icon: Clock,
-      title: "20+ Years Experience",
-      description: "Two decades of crafting premium doors with European precision"
-    },
-    {
-      icon: Users,
-      title: "Expert Craftsmen",
-      description: "Skilled artisans trained in traditional and modern techniques"
-    },
-    {
-      icon: Award,
-      title: "Quality Certified",
-      description: "ISO certified manufacturing with rigorous quality controls"
-    },
-    {
-      icon: Shield,
-      title: "Lifetime Warranty",
-      description: "Confidence in our craftsmanship backed by comprehensive warranty"
-    }
+    { icon: Building2, title: t('about.features.own.title'), description: t('about.features.own.desc') },
+    { icon: Users, title: t('about.features.team.title'), description: t('about.features.team.desc') },
+    { icon: Ruler, title: t('about.features.sizes.title'), description: t('about.features.sizes.desc') },
+    { icon: Award, title: t('about.features.projects.title'), description: t('about.features.projects.desc') },
   ];
 
   return (
     <section id="about" className="py-20 bg-gradient-to-b from-secondary/30 to-background">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-playfair font-bold text-primary mb-6">
-            Crafting Excellence Since 1999
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            From our state-of-the-art facility in Ukraine, we blend traditional European craftsmanship 
-            with cutting-edge technology to create doors that define spaces and inspire lives.
-          </p>
+          <h2 className="text-4xl md:text-5xl font-playfair font-bold text-primary mb-6">{t('about.title')}</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">{t('about.lead')}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-16">
           <div className="space-y-8">
             <div>
-              <h3 className="text-3xl font-playfair font-semibold text-primary mb-4">
-                European Heritage, Modern Innovation
-              </h3>
-              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                Founded by master craftsmen with deep roots in European woodworking traditions, 
-                Hammer Group has evolved into Ukraine's premier door manufacturer. We combine 
-                time-honored techniques with state-of-the-art CNC machinery and sustainable practices.
-              </p>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Every door that leaves our facility is a testament to our commitment to quality, 
-                durability, and aesthetic excellence. We don't just make doors; we create the 
-                entrance to your dreams.
-              </p>
+              <h3 className="text-3xl font-playfair font-semibold text-primary mb-4">{t('about.h3')}</h3>
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">{t('about.p1')}</p>
+              <p className="text-lg text-muted-foreground leading-relaxed">{t('about.p2')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent mb-2">10,000+</div>
-                <div className="text-muted-foreground">Doors Delivered</div>
+                <div className="text-4xl font-bold text-accent mb-2">5,000+</div>
+                <div className="text-muted-foreground">{t('about.badges.projects')}</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent mb-2">50+</div>
-                <div className="text-muted-foreground">Countries Served</div>
+                <div className="text-4xl font-bold text-accent mb-2">2017</div>
+                <div className="text-muted-foreground">{t('about.badges.founded')}</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent mb-2">98%</div>
-                <div className="text-muted-foreground">Client Satisfaction</div>
+                <div className="text-4xl font-bold text-accent mb-2">In‑House</div>
+                <div className="text-muted-foreground">{t('about.badges.manufacturing')}</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent mb-2">24/7</div>
-                <div className="text-muted-foreground">Support Service</div>
+                <div className="text-4xl font-bold text-accent mb-2">To‑Size</div>
+                <div className="text-muted-foreground">{t('about.badges.tosize')}</div>
               </div>
             </div>
           </div>
@@ -86,8 +57,8 @@ const AboutSection = () => {
               />
             </div>
             <div className="absolute -bottom-6 -right-6 bg-accent text-accent-foreground p-6 rounded-xl shadow-lg">
-              <div className="text-2xl font-bold">ISO 9001</div>
-              <div className="text-sm">Certified Quality</div>
+              <div className="text-2xl font-bold">{t('about.badges.since')}</div>
+              <div className="text-sm">{t('about.badges.own')}</div>
             </div>
           </div>
         </div>

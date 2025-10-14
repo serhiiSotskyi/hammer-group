@@ -1,0 +1,263 @@
+{
+  "nav": {
+    "home": "Home",
+    "interior": "Interior Doors",
+    "concealed": "Concealed Doors",
+    "furniture": "Furniture",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "hero": {
+    "title1": "Premium Doors & Furniture,",
+    "title2": "Made To Fit Your Space",
+    "sub": "Since 2017 — own manufacturing with standard and non‑standard sizes",
+    "start": "Start Customising",
+    "watch": "Watch Our Story",
+    "stats": {
+      "founded": "Founded",
+      "projects": "Projects Completed",
+      "manufacturing": "Manufacturing • Custom Sizes"
+    }
+  },
+  "collections": {
+    "title": "Our Premium Collections",
+    "blurb": "Discover our carefully curated collections, each designed to complement different architectural styles and personal preferences",
+    "badge1": "Since 2017",
+    "badge2": "5,000+ completed projects",
+    "badge3": "Own manufacturing",
+    "cards": {
+      "interior": {
+        "title": "Interior Doors",
+        "description": "Timeless elegance with traditional European craftsmanship",
+        "features": ["Solid Wood", "Glass Inserts", "Brass Hardware"],
+        "price": "From €899"
+      },
+      "concealed": {
+        "title": "Concealed Doors",
+        "description": "Sleek contemporary designs for modern living spaces",
+        "features": ["Minimalist Design", "Hidden Hinges", "Smart Lock Ready"],
+        "price": "From €1,199"
+      },
+      "furniture": {
+        "title": "Furniture",
+        "description": "Premium materials and exclusive finishes",
+        "features": ["Premium Wood", "Custom Glass", "Gold Hardware"],
+        "price": "From €1,899"
+      }
+    }
+  },
+  "contact": {
+    "title": "Let's Create Your Perfect Door",
+    "subtitle": "Ready to start your project? Get in touch with our design experts for a free consultation.",
+    "send": "Send Message",
+    "name": "Full Name *",
+    "phone": "Phone Number",
+    "email": "Email Address *",
+    "details": "Project Details",
+    "detailsPlaceholder": "Tell us about your project: door type, dimensions, style preferences, timeline...",
+    "managerSoon": "Our manager will contact you shortly.",
+    "info": {
+      "visit": "Visit Our Showroom",
+      "city": "Odesa, Ukraine",
+      "street": "Krasnova street 12A",
+      "appointment": "Show by appointment",
+      "call": "Call Us",
+      "phone1": "+380 (44) 123-45-67",
+      "phone2": "+380 (50) 987-65-43",
+      "free": "Free consultation",
+      "emailUs": "Email Us",
+      "email": "info@hammergroup.ua",
+      "quick": "Quick response",
+      "hours": "Working Hours",
+      "range": "Mon-Sun: 10:00 - 19:00",
+    "responseTime": "We typically respond within 2-4 hours during business hours",
+    "managerSoon": "Our manager will contact you shortly."
+  }
+  },
+  "footer": {
+    "brand": "Crafting premium custom doors since 2017. European heritage meets modern innovation in every piece we create.",
+    "quick": "Quick Links",
+    "products": "Products",
+    "contact": "Contact Info",
+    "address": "Krasnova Street, 12A",
+    "city": "Odesa, Ukraine",
+    "backTop": "Back to Top",
+    "collections": "Collections",
+    "rights": "All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "websiteBy": "Website by"
+  },
+  "about": {
+    "title": "Crafting Quality Since 2017",
+    "lead": "We operate our own manufacturing, blending hands‑on craftsmanship with modern tools to deliver both standard and non‑standard sizes for doors and cabinet furniture.",
+    "h3": "Real Production, Real Results",
+    "p1": "Since 2017, our team has produced and installed thousands of projects — from interior and concealed doors to custom cabinetry — all built to fit and finished to your specification.",
+    "p2": "We focus on practical quality: precise sizing, solid construction, and reliable hardware. Standard where it helps, custom where it matters.",
+    "badges": {
+      "projects": "Projects Delivered",
+      "founded": "Founded",
+      "manufacturing": "Manufacturing",
+      "tosize": "Standard & Custom",
+      "since": "Since 2017",
+      "own": "Own Manufacturing"
+    },
+    "features": {
+      "own": {"title":"Own Manufacturing","desc":"Full in‑house production for consistent quality and lead times"},
+      "team": {"title":"Expert Team","desc":"Skilled artisans using modern tooling and proven methods"},
+      "sizes": {"title":"Standard & Non‑standard","desc":"We build to size — from classic formats to custom heights"},
+      "projects": {"title":"5,000+ Projects","desc":"Doors and furniture delivered for residential and commercial clients"}
+    }
+  },
+  "pages": {
+    "interiorTitle": "Interior Doors",
+    "interiorBlurb": "Discover our collection of premium interior doors, crafted for durability and elegant design.",
+    "concealedTitle": "Concealed Doors",
+    "concealedBlurb": "Premium concealed doors with flush finish."
+  },
+  "common": {
+    "basePrice": "Base price",
+    "adjustments": "Adjustments",
+    "total": "Total",
+    "priceNote": "Note: The final price may vary slightly from this estimate due to on‑site measurements, hardware availability, finishing details, and exchange‑rate rounding. A manager will confirm your final quote.",
+    "view": "View",
+    "customize": "Customize",
+    "getQuote": "Get Quote",
+    "from": "From",
+    "failed": "Failed to load"
+  },
+  "customizer": {
+    "interiorTitle": "Interior Door Customizer",
+    "concealedTitle": "Concealed Door Customizer",
+    "subtitle": "Choose your options and we'll calculate pricing instantly.",
+    "preview": "Preview",
+    "priceBreakdown": "Price breakdown",
+    "updating": "Updating price...",
+    "calcError": "Unable to calculate price. Please review selections.",
+    "dialogTitle": "Get a Quote",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "unable": "Unable to load customizer at the moment.",
+    "saving": "Saving...",
+    "sending": "Sending...",
+    "sendQuote": "Send Quote",
+    "selectPlaceholder": "Select {{label}}",
+    "saveDesign": "Save Design",
+    "quoteSavedTitle": "Quote saved",
+    "quoteSavedDesc": "We'll be in touch shortly with the details.",
+    "quoteFailedTitle": "Quote failed",
+    "quoteFailedDesc": "Something went wrong"
+  }
+  ,
+  "schema": {
+    "groups": {
+      "doorBlock": "Door Block",
+      "casings": "Door Casings",
+      "sizes": "Sizes",
+      "opening": "Opening",
+      "finishCoat": "Finish coat",
+      "construction": "Door Construction",
+      "finish": "Finish",
+      "hardware": "Hardware",
+      "dimensions": "Dimensions",
+      "paint": "Painting",
+      "profile": "Profile / Markup",
+      "install": "Installation Type",
+      "hinges": "Hinges"
+    },
+    "controls": {
+      "doorBlock": "Door Block",
+      "casingFront": "Front side",
+      "casingInner": "Inner side",
+      "heightMm": "Height (mm)",
+      "widthMm": "Width (mm)",
+      "depthMm": "Depth (mm)",
+      "opening": "Opening",
+      "finishCoat": "Finish coat",
+      "leafType": "Door Leaf",
+      "leafFill": "Leaf Fill",
+      "finishType": "Finish",
+      "softClose": "Soft close",
+      "hiddenHinges": "Hidden hinges",
+      "heightMm": "Height (mm)",
+      "widthMm": "Width (mm)",
+      "frame": "Frame",
+      "hinge": "Hinge (mortised)",
+      "lock": "Lock (mortised)",
+      "stop-phantom": "Magnetic stop (Phantom)",
+      "stop-mvm": "Magnetic stop (MVM)",
+      "handle": "Handle",
+      "latch": "Latch",
+      "decor": "Decorative element",
+      "aligner": "Aligner",
+      "profileType": "Profile",
+      "paint-box": "Paint box",
+      "paint-box-frame": "Paint box and frame",
+      "installType": "Installation type",
+      "magneticLock": "Magnetic lock",
+      "magneticStopper": "Magnetic stopper",
+      "dropDownThreshold": "Drop-down threshold",
+      "paintFrameCasing": "Painting of frame and casing",
+      "hinges": "Hinges"
+    },
+    "options": {
+      "doorBlock": {
+        "standard": "Standard frame",
+        "complanar": "Complanar frame",
+        "inside": "INSIDE frame"
+      },
+      "casing": {
+        "overlay": "Overlay",
+        "telescopic": "Telescopic"
+      },
+      "leafType": {
+        "with-rebate": "With rebate",
+        "without-rebate": "Without rebate"
+      },
+      "leafFill": {
+        "solid": "Solid core",
+        "light": "Lightweight honeycomb"
+      },
+      "finishType": {
+        "standard": "Standard paint",
+        "premium": "Premium lacquer",
+        "veneer": "Natural veneer",
+        "pvc": "PVC",
+        "mirror": "Mirror",
+        "paint-matte": "Matte paint",
+        "paint-gloss": "Gloss paint",
+        "primer": "Primer"
+      },
+      "frame": {
+        "wood": "Wood frame",
+        "aluminium": "Aluminium frame",
+        "box-putty": "Box for putty",
+        "box-panel": "Box for panel",
+        "inside": "Inside (with edge)",
+        "inside-aluminium": "Inside for aluminium",
+        "al-edge": "Aluminium edge"
+      },
+      "profileType": {
+        "standard": "Standard (25%)",
+        "budget": "Budget (30%)"
+      },
+      "opening": {
+        "out-right": "Outward, right",
+        "out-left": "Outward, left",
+        "in-right": "Inward, right",
+        "in-left": "Inward, left",
+        "standard": "Standard",
+        "reverse": "Reverse"
+      },
+      "finishCoat": {
+        "standard": "Standard",
+        "standardPlus": "Standard Plus"
+      },
+      "installType": {
+        "flushPlaster": "Flush with plaster",
+        "flushPanels": "Flush with wall panels"
+      }
+    }
+  }
+}

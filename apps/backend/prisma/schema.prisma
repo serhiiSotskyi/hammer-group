@@ -7,63 +7,159 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Categories like Interior Doors, Concealed Doors, Furniture
+enum SchemaStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model Category {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique
-  products Product[]
-  groups   ParameterGroup[]
+  id             Int           @id @default(autoincrement())
+  name           String        @unique
+  slug           String        @unique
+  products       Product[]
+  collections    Collection[]
+  schemas        ParamSchema[]
+  quotes         Quote[]
+  activeSchemaId Int?        @unique
+  activeSchema   ParamSchema?  @relation("ActiveSchema", fields: [activeSchemaId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
-// Products inside categories
 model Product {
-  id          Int                 @id @default(autoincrement())
-  name        String
-  description String?
-  basePrice   Float
-  imageUrl    String?
-  categoryId  Int
-  category    Category            @relation(fields: [categoryId], references: [id])
-
-  parameters  ProductParameter[]
+  id             Int        @id @default(autoincrement())
+  categoryId     Int
+  category       Category   @relation(fields: [categoryId], references: [id])
+  name           String
+  slug           String     @unique
+  basePriceCents Int
+  imageUrl       String?
+  description    String?
+  collectionId   Int?
+  collection     Collection? @relation(fields: [collectionId], references: [id])
+  doorType       DoorType   @default(STANDARD)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  quotes         Quote[]
 }
 
-// Parameter groups (Door Leaf, Casings, Height, etc.)
-model ParameterGroup {
-  id         Int      @id @default(autoincrement())
-  name       String
-  type       String   // "select", "range", "radio"
-  isRequired Boolean  @default(false)
-
-  // Range support (only used if type = "range")
-  min        Int?
-  max        Int?
-  step       Int?
-
+model Collection {
+  id         Int       @id @default(autoincrement())
   categoryId Int
-  category   Category          @relation(fields: [categoryId], references: [id])
+  category   Category  @relation(fields: [categoryId], references: [id])
+  name       String
+  slug       String
+  imageUrl   String?
+  products   Product[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  options    ParameterOption[]
+  @@unique([categoryId, slug])
 }
 
-// Options inside a group (for select/radio types)
-model ParameterOption {
-  id               Int                @id @default(autoincrement())
-  name             String
-  extraPrice       Float              @default(0)
+model ParamSchema {
+  id          Int          @id @default(autoincrement())
+  categoryId  Int
+  category    Category     @relation(fields: [categoryId], references: [id])
+  version     Int
+  status      SchemaStatus @default(DRAFT)
+  label       String
+  json        Json
+  checksum    String
+  publishedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  activeFor   Category?    @relation("ActiveSchema")
 
-  groupId          Int
-  group            ParameterGroup     @relation(fields: [groupId], references: [id])
-
-  allowedProducts  ProductParameter[]
+  @@unique([categoryId, version])
 }
 
-// Link table → which products allow which options
-model ProductParameter {
-  id          Int             @id @default(autoincrement())
-  productId   Int
-  optionId    Int
+model Quote {
+  id               String   @id @default(cuid())
+  productId        Int
+  product          Product  @relation(fields: [productId], references: [id])
+  categoryId       Int
+  category         Category @relation(fields: [categoryId], references: [id])
 
-  product     Product         @relation(fields: [productId], references: [id])
-  option      ParameterOption @relation(fields: [optionId], references: [id])
+  selections       Json
+  schemaVersionId  Int?
+  schemaLabel      String?
+  schemaChecksum   String?
+  schemaSnapshot   Json
+
+  basePriceCents   Int
+  adjustmentsCents Int
+  totalPriceCents  Int
+  breakdown        Json
+  resolvedSelections Json?
+
+  customerName     String?
+  customerEmail    String?
+  customerPhone    String?
+  notes            String?
+
+  delivered        Boolean  @default(false)
+  adminNotes       String?
+
+  // FX snapshot at time of quote
+  baseCurrency     String?  @default("USD")
+  quoteCurrency    String?  @default("UAH")
+  fxRate           Float?
+  fxSource         String?
+  fxAsOf           DateTime?
+
+  createdAt        DateTime @default(now())
+}
+
+enum InquiryType {
+  GENERAL
+  FURNITURE
+}
+
+enum DoorType {
+  STANDARD
+  BUDGET
+}
+
+model Inquiry {
+  id        Int          @id @default(autoincrement())
+  type      InquiryType
+  name      String
+  email     String?
+  phone     String?
+  message   String?
+  delivered Boolean      @default(false)
+  adminNotes String?
+  createdAt DateTime     @default(now())
+}
+
+model FurniturePortfolio {
+  id        Int      @id @default(autoincrement())
+  name      String
+  imageUrl  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Cached daily FX rates
+model FxRate {
+  id        Int      @id @default(autoincrement())
+  base      String
+  quote     String
+  rate      Float
+  asOfDate  DateTime
+  source    String   @default("MANUAL")
+  createdAt DateTime @default(now())
+
+  @@unique([base, quote, asOfDate])
+}
+
+model AdminUser {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
 }

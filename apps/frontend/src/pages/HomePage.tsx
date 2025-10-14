@@ -11,7 +11,6 @@ export default function HomePage() {
     <>
       <HeroSection />
       <CollectionsSection />
-      <CustomizerSection />
       <AboutSection />
       <ContactSection />
     </>

@@ -1,12 +1,9 @@
-import CustomizerSection from '@/components/InteriorCustomizerSection';
-
+import { useSearchParams } from "react-router-dom";
+import CustomizerSection from "@/components/InteriorCustomizerSection";
 
 export default function CustomizerPage() {
-  return (
-    <>
-      
-      <CustomizerSection />
-      
-    </>
-  );
+  const [params] = useSearchParams();
+  const slug = params.get("slug") ?? undefined;
+
+  return <CustomizerSection productSlug={slug} />;
 }

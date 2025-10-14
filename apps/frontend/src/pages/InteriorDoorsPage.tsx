@@ -2,47 +2,50 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getProducts, ProductResponse, resolveImageUrl } from "@/services/api";
+import { useTranslation } from 'react-i18next';
+import { formatCurrencyByLang } from '@/lib/format';
 
-// API base
-const API_URL = "http://localhost:4000";
-
-async function fetchInteriorDoors() {
-  const res = await fetch(`${API_URL}/api/products?categoryId=1`);
-  if (!res.ok) throw new Error("Failed to fetch products");
-  return res.json();
+function formatCurrency(amountCents: number, currency = "UAH", lang = 'uk') {
+  return formatCurrencyByLang(amountCents, currency, lang);
 }
 
 export default function InteriorDoorsPage() {
+  const { t, i18n } = useTranslation();
   const { data: products, isLoading, error } = useQuery({
     queryKey: ["interior-doors"],
-    queryFn: fetchInteriorDoors,
+    queryFn: () => getProducts({ categorySlug: "interior" }),
   });
 
-  if (isLoading) return <p className="p-10">Loading doors...</p>;
-  if (error) return <p className="p-10 text-red-500">Error loading doors</p>;
+  if (isLoading) return <p className="p-10">{t('customizer.updating')}</p>;
+  if (error) return <p className="p-10 text-red-500">{t('common.failed')}</p>;
 
   return (
     <div className="p-10">
-      <h1 className="text-4xl font-bold mb-6">Interior Doors</h1>
-      <p className="text-lg text-gray-700 mb-10">
-        Discover our collection of premium interior door leaves, crafted for durability and elegant design.
-      </p>
+      <h1 className="text-4xl font-bold mb-6">{t('pages.interiorTitle')}</h1>
+      <p className="text-lg text-gray-700 mb-10">{t('pages.interiorBlurb')}</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {products.map((door: any) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
+        {products?.map((door: ProductResponse) => (
           <Card key={door.id} className="overflow-hidden transition hover:shadow-lg">
             <img
-              src={door.imageUrl || "/placeholder-door.png"}
+              src={resolveImageUrl(door.imageUrl) || "/placeholder.svg"}
               alt={door.name}
               className="w-full h-68 object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/placeholder.svg";
+              }}
             />
             <CardHeader>
               <CardTitle>{door.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-lg font-semibold mb-4">From €{door.basePrice}</p>
-              <Link to={`/customizer?productId=${door.id}`}>
-                <Button className="w-full premium-button">Customize</Button>
+              <p className="text-lg font-semibold mb-4">
+                {t('common.from')} {formatCurrency(door.convertedPriceCents ?? door.basePriceCents, door.currency ?? 'UAH', i18n.language)}
+              </p>
+              <Link to={`/customizer?slug=${door.slug}`}>
+                <Button className="w-full premium-button">{t('common.customize')}</Button>
               </Link>
             </CardContent>
           </Card>

@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { Menu, X, Phone, Mail } from "lucide-react";
 import { Link } from "react-router-dom"; // ✅ React Router
+import { useTranslation } from 'react-i18next';
+import LanguageToggle from './LanguageToggle';
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/HammerB.svg";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -16,13 +20,12 @@ const Navigation = () => {
   }, []);
 
   const navItems = [
-    { name: "Home", to: "/" },
-    { name: "Interior Doors", to: "/interior-doors" },
-    { name: "Concealed Doors", to: "/concealed-doors" },
-    { name: "Cabinet Furniture", to: "/cabinet-furniture" },
-    { name: "About", to: "/about" },
-    { name: "Contact", to: "/contact" },
-    
+    { name: t('nav.home'), to: "/" },
+    { name: t('nav.interior'), to: "/interior-doors" },
+    { name: t('nav.concealed'), to: "/concealed-doors" },
+    { name: t('nav.furniture'), to: "/cabinet-furniture" },
+    { name: t('nav.about'), to: "/about" },
+    { name: t('nav.contact'), to: "/contact" }
   ];
 
   return (
@@ -34,14 +37,16 @@ const Navigation = () => {
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-[var(--gradient-wood)] rounded-lg flex items-center justify-center">
-              <span className="text-accent-foreground font-bold text-xl">H</span>
-            </div>
-            <span className="text-2xl font-playfair font-bold text-primary">
+          <Link to="/" className="flex items-center gap-3 group">
+            <img
+              src={logo}
+              alt="Hammer Group"
+              className="h-8 w-8 md:h-10 md:w-10 object-contain drop-shadow-sm transition-transform duration-200 group-hover:scale-105"
+            />
+            <span className="text-2xl font-playfair font-bold text-primary tracking-tight group-hover:text-accent transition-colors">
               Hammer Group
             </span>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-8">
@@ -54,6 +59,7 @@ const Navigation = () => {
                 {item.name}
               </Link>
             ))}
+            <LanguageToggle />
           </div>
 
           {/* Contact Info & CTA */}
@@ -63,14 +69,9 @@ const Navigation = () => {
                 {/* <Phone className="w-4 h-4" />
                 <span>+380 (44) 123-45-67</span> */}
               </div>
-              <div className="flex items-center space-x-1">
-                <Mail className="w-4 h-4" />
-                <span>info@hammergroup.ua</span>
-              </div>
+        
             </div>
-            <Link to="/customizer">
-              <Button className="premium-button">Start Customizing</Button>
-            </Link>
+            
           </div>
 
           {/* Mobile Menu Button */}
@@ -100,13 +101,7 @@ const Navigation = () => {
                   {item.name}
                 </Link>
               ))}
-              <div className="pt-4 border-t border-border">
-                <Link to="/customizer" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="premium-button w-full">
-                    Start Customizing
-                  </Button>
-                </Link>
-              </div>
+              <LanguageToggle />
             </div>
           </div>
         )}

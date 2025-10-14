@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, Play, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 import heroImage from '@/assets/hero-door.jpg';
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setIsVisible(true);
@@ -27,39 +29,29 @@ const HeroSection = () => {
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}>
         <h1 className="text-5xl md:text-7xl font-playfair font-bold text-white mb-6">
-          Premium Doors,
-          <span className="block hero-text">Designed by You</span>
+          {t('hero.title1')}
+          <span className="block hero-text">{t('hero.title2')}</span>
         </h1>
         
         <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-2xl mx-auto leading-relaxed">
-          Personalise every detail — see your design and price instantly with our revolutionary 3D configurator
+          {t('hero.sub')}
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
-          <Button className="premium-button group">
-            Start Customising
-            <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
-          </Button>
-          
-          <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 px-8 py-4 rounded-xl">
-            <Play className="mr-2 w-5 h-5" />
-            Watch Our Story
-          </Button>
-        </div>
+        
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-white">
           <div>
-            <div className="text-4xl font-bold mb-2">20+</div>
-            <div className="text-white/80">Years of Excellence</div>
+            <div className="text-4xl font-bold mb-2">2017</div>
+            <div className="text-white/80">{t('hero.stats.founded')}</div>
           </div>
           <div>
-            <div className="text-4xl font-bold mb-2">10,000+</div>
-            <div className="text-white/80">Doors Crafted</div>
+            <div className="text-4xl font-bold mb-2">5,000+</div>
+            <div className="text-white/80">{t('hero.stats.projects')}</div>
           </div>
           <div>
-            <div className="text-4xl font-bold mb-2">98%</div>
-            <div className="text-white/80">Customer Satisfaction</div>
+            <div className="text-4xl font-bold mb-2">In‑House</div>
+            <div className="text-white/80">{t('hero.stats.manufacturing')}</div>
           </div>
         </div>
       </div>

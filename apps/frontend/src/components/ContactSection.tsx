@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -14,49 +15,40 @@ const ContactSection = () => {
     message: ''
   });
   const { toast } = useToast();
+  const { t } = useTranslation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you within 24 hours.",
-    });
-    setFormData({ name: '', email: '', phone: '', message: '' });
+    try {
+      const res = await fetch('http://localhost:4000/api/contact/general', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) throw new Error('Failed to submit');
+      toast({
+        title: "Message Sent!",
+        description: "We'll get back to you within 24 hours.",
+      });
+      setFormData({ name: '', email: '', phone: '', message: '' });
+    } catch (err) {
+      toast({ title: 'Submission failed', description: 'Please try again later.', variant: 'destructive' as any });
+    }
   };
 
   const contactInfo = [
-    {
-      icon: MapPin,
-      title: "Visit Our Showroom",
-      details: ["Kyiv, Ukraine", "Prospect Pobedy 125", "Show by appointment"],
-    },
-    {
-      icon: Phone,
-      title: "Call Us",
-      details: ["+380 (44) 123-45-67", "+380 (50) 987-65-43", "Free consultation"],
-    },
-    {
-      icon: Mail,
-      title: "Email Us",
-      details: ["info@hammergroup.ua", "orders@hammergroup.ua", "Quick response"],
-    },
-    {
-      icon: Clock,
-      title: "Working Hours",
-      details: ["Mon-Fri: 9:00 - 18:00", "Sat: 10:00 - 16:00", "Sun: By appointment"],
-    },
+    { icon: MapPin, title: t('contact.info.visit'), details: [t('contact.info.city'), t('contact.info.street'), t('contact.info.appointment')] },
+    { icon: Phone, title: t('contact.info.call'), details: [t('contact.info.phone1'), t('contact.info.phone2'), t('contact.info.free')] },
+    { icon: Mail,  title: t('contact.info.emailUs'), details: [t('contact.info.email'), t('contact.info.quick')] },
+    { icon: Clock, title: t('contact.info.hours'), details: [t('contact.info.range')] },
   ];
 
   return (
     <section id="contact" className="py-20 bg-background">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-playfair font-bold text-primary mb-6">
-            Let's Create Your Perfect Door
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Ready to start your project? Get in touch with our design experts for a free consultation.
-          </p>
+          <h2 className="text-4xl md:text-5xl font-playfair font-bold text-primary mb-6">{t('contact.title')}</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">{t('contact.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -84,15 +76,19 @@ const ContactSection = () => {
               ))}
             </div>
 
-            {/* Map Placeholder */}
+            {/* Map */}
             <Card>
               <CardContent className="p-0">
-                <div className="h-64 bg-gradient-to-br from-secondary to-muted rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="w-12 h-12 text-accent mx-auto mb-4" />
-                    <p className="text-lg font-semibold text-primary">Our Location</p>
-                    <p className="text-muted-foreground">Interactive map coming soon</p>
-                  </div>
+                <div className="rounded-lg overflow-hidden">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2748.8463064685084!2d30.734479776718167!3d46.45174227110723!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40c633d677300001%3A0x88bdde9547a08f98!2sHammer%20Doors!5e0!3m2!1sen!2suk!4v1758901533810!5m2!1sen!2suk"
+                    className="w-full h-[400px]"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Hammer Doors Location"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -102,38 +98,32 @@ const ContactSection = () => {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl font-playfair">Send Us a Message</CardTitle>
+                <CardTitle className="text-2xl font-playfair">{t('contact.send')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">
-                        Full Name *
-                      </label>
+                      <label className="text-sm font-medium text-foreground mb-2 block">{t('contact.name')}</label>
                       <Input
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        placeholder="Enter your name"
+                        placeholder={t('contact.name')}
                         required
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">
-                        Phone Number
-                      </label>
+                      <label className="text-sm font-medium text-foreground mb-2 block">{t('contact.phone')}</label>
                       <Input
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                        placeholder="+380 (XX) XXX-XX-XX"
+                        placeholder={t('contact.info.phone1')}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">
-                      Email Address *
-                    </label>
+                    <label className="text-sm font-medium text-foreground mb-2 block">{t('contact.email')}</label>
                     <Input
                       type="email"
                       value={formData.email}
@@ -144,13 +134,11 @@ const ContactSection = () => {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">
-                      Project Details
-                    </label>
+                    <label className="text-sm font-medium text-foreground mb-2 block">{t('contact.details')}</label>
                     <Textarea
                       value={formData.message}
                       onChange={(e) => setFormData({...formData, message: e.target.value})}
-                      placeholder="Tell us about your project: door type, dimensions, style preferences, timeline..."
+                      placeholder={t('contact.detailsPlaceholder')}
                       rows={6}
                     />
                   </div>
@@ -158,16 +146,12 @@ const ContactSection = () => {
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button type="submit" className="premium-button flex-1 group">
                       <Send className="mr-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-                      Send Message
+                      {t('contact.send')}
                     </Button>
-                    <Button type="button" variant="outline" className="flex-1">
-                      Book Consultation
-                    </Button>
+                   
                   </div>
 
-                  <p className="text-sm text-muted-foreground text-center">
-                    We typically respond within 2-4 hours during business hours
-                  </p>
+                  <p className="text-sm text-muted-foreground text-center">{t('contact.info.responseTime')}</p>
                 </form>
               </CardContent>
             </Card>

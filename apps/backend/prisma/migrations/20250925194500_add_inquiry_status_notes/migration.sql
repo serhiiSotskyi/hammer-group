@@ -1,0 +1,2 @@
+ALTER TABLE "Inquiry" ADD COLUMN "delivered" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Inquiry" ADD COLUMN "adminNotes" TEXT;

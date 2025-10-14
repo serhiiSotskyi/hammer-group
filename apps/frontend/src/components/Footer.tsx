@@ -1,11 +1,15 @@
-import { Facebook, Instagram, Linkedin, Youtube, ArrowUp } from 'lucide-react';
+import { Instagram, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Footer = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  const { t } = useTranslation();
 
+  const year = new Date().getFullYear();
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto px-6 py-16">
@@ -18,35 +22,35 @@ const Footer = () => {
               </div>
               <span className="text-2xl font-playfair font-bold">Hammer Group</span>
             </div>
-            <p className="text-primary-foreground/80 leading-relaxed">
-              Crafting premium custom doors since 1999. European heritage meets modern innovation 
-              in every piece we create.
-            </p>
+            <p className="text-primary-foreground/80 leading-relaxed">{t('footer.brand')}</p>
             <div className="flex space-x-4">
-              <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-accent hover:bg-accent/10">
-                <Facebook className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-accent hover:bg-accent/10">
-                <Instagram className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-accent hover:bg-accent/10">
-                <Linkedin className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-accent hover:bg-accent/10">
-                <Youtube className="w-5 h-5" />
+              <Button asChild variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-accent hover:bg-accent/10">
+                <a
+                  href="https://www.instagram.com/hammergroupua/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Hammer Group Instagram"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
               </Button>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
+            <h4 className="text-lg font-semibold mb-4">{t('footer.quick')}</h4>
             <ul className="space-y-2">
-              {['Home', 'Collections', 'Customizer', 'About', 'Gallery', 'Services'].map((link) => (
-                <li key={link}>
-                  <a href={`#${link.toLowerCase()}`} className="text-primary-foreground/80 hover:text-accent transition-colors">
-                    {link}
-                  </a>
+              {[
+                { label: t('nav.home'), to: '/' },
+                { label: t('footer.collections'), to: '/#collections' },
+                { label: t('nav.about'), to: '/about' },
+                { label: t('nav.contact'), to: '/contact' },
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link to={item.to} className="text-primary-foreground/80 hover:text-accent transition-colors">
+                    {item.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -54,13 +58,17 @@ const Footer = () => {
 
           {/* Products */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Products</h4>
+            <h4 className="text-lg font-semibold mb-4">{t('footer.products')}</h4>
             <ul className="space-y-2">
-              {['Interior Doors', 'Entrance Doors', 'Sliding Systems', 'Furniture', 'Hardware', 'Accessories'].map((product) => (
-                <li key={product}>
-                  <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors">
-                    {product}
-                  </a>
+              {[
+                { label: t('nav.interior'), to: '/interior-doors' },
+                { label: t('nav.concealed'), to: '/concealed-doors' },
+                { label: t('nav.furniture'), to: '/cabinet-furniture' },
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link to={item.to} className="text-primary-foreground/80 hover:text-accent transition-colors">
+                    {item.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -68,10 +76,10 @@ const Footer = () => {
 
           {/* Contact */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Contact Info</h4>
+            <h4 className="text-lg font-semibold mb-4">{t('footer.contact')}</h4>
             <div className="space-y-2 text-primary-foreground/80">
-              <p>Prospect Pobedy 125</p>
-              <p>Kyiv, Ukraine 01135</p>
+              <p>{t('footer.address')}</p>
+              <p>{t('footer.city')}</p>
               <p className="pt-2">
                 <a href="tel:+380441234567" className="hover:text-accent transition-colors">
                   +380 (44) 123-45-67
@@ -90,7 +98,15 @@ const Footer = () => {
         <div className="border-t border-primary-foreground/20 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-primary-foreground/60 text-sm mb-4 md:mb-0">
-              © 2024 Hammer Group. All rights reserved. | Privacy Policy | Terms of Service
+              © {year} Hammer Group. {t('footer.rights')} | {t('footer.privacy')} | {t('footer.terms')} | {t('footer.websiteBy')}{" "}
+              <a
+                href="https://www.linkedin.com/in/sotskyis/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-accent"
+              >
+                Serhii Sotskyi
+              </a>
             </div>
             <Button 
               variant="ghost" 
@@ -99,7 +115,7 @@ const Footer = () => {
               className="text-primary-foreground/80 hover:text-accent hover:bg-accent/10"
             >
               <ArrowUp className="w-4 h-4 mr-2" />
-              Back to Top
+              {t('footer.backTop')}
             </Button>
           </div>
         </div>
