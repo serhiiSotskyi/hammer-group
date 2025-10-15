@@ -1,6 +1,6 @@
 import { ParamSchemaJSON, PricingBreakdownEntry } from "@/types/paramSchema";
 
-export const API_ORIGIN = "http://localhost:4000";
+export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || "";
 const API_URL = `${API_ORIGIN}/api`;
 
 export interface ProductResponse {

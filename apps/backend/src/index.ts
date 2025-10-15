@@ -41,7 +41,8 @@ const COOKIE_SAMESITE = (process.env.COOKIE_SAMESITE as any) || "lax"; // 'lax' 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 
 // Serve static uploaded files
-const uploadsDir = path.resolve(process.cwd(), "uploads");
+// In production (Azure), set UPLOADS_DIR=/home/uploads. For local dev, default to ./uploads
+const uploadsDir = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads"));
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
