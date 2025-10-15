@@ -12,29 +12,23 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Use Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install deps (backend)
+        run: npm ci
+        working-directory: apps/backend
 
-      - name: Build project
-        run: npm run build --if-present
+      - name: Build (backend)
+        run: npm run build
+        working-directory: apps/backend
 
-      - name: Zip backend
-        run: zip -r backend.zip .
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-zip
-          path: backend.zip
-
+      
   deploy:
     runs-on: ubuntu-latest
     needs: build
