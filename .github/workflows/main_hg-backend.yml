@@ -6,9 +6,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
     permissions:
+      id-token: write
       contents: read
 
     steps:
@@ -28,31 +29,21 @@ jobs:
         run: npm run build
         working-directory: apps/backend
 
-      
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      id-token: write
-      contents: read
+      # Optional: keep dev deps for first deploy so prisma CLI is available on server
+      # - name: Prune dev deps
+      #   run: npm prune --omit=dev
+      #   working-directory: apps/backend
 
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-zip
-          path: .
+      # - name: Azure login (OIDC)
+      #   uses: azure/login@v2
+      #   with:
+      #     client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4C93251DEACB4D10A5B23FE1CD7D93F2 }}
+      #     tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_46843AC4110A41FBAD73DDB6865B0709 }}
+      #     subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_EDBE6C353E1E477DAE3FE624581B3052 }}
 
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4C93251DEACB4D10A5B23FE1CD7D93F2 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_46843AC4110A41FBAD73DDB6865B0709 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_EDBE6C353E1E477DAE3FE624581B3052 }}
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: hg-backend
-          slot-name: Production
-          package: backend.zip
+      # - name: Deploy to Azure Web App
+      #   uses: azure/webapps-deploy@v3
+      #   with:
+      #     app-name: hg-backend
+      #     slot-name: Production
+      #     package: apps/backend
