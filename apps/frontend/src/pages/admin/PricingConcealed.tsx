@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { API_ORIGIN } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
@@ -6,13 +7,13 @@ type SchemaResp = { checksum: string; schema: any };
 
 async function fetchSchema() {
   const ts = Date.now();
-  const res = await fetch(`http://localhost:4000/api/categories/concealed/schema?ts=${ts}`, { credentials: 'include' });
+  const res = await fetch(`${API_ORIGIN}/api/categories/concealed/schema?ts=${ts}`, { credentials: 'include' });
   if (!res.ok) throw new Error('Failed to load schema');
   return res.json() as Promise<SchemaResp>;
 }
 
 async function merge(payload: any) {
-  const res = await fetch('http://localhost:4000/api/admin/schema/concealed/merge', {
+  const res = await fetch(`${API_ORIGIN}/api/admin/schema/concealed/merge`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'include',
   });
   if (!res.ok) throw new Error('Save failed');

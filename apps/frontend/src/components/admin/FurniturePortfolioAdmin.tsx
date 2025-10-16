@@ -3,12 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { resolveImageUrl, uploadImage } from "@/services/api";
+import { resolveImageUrl, uploadImage, API_ORIGIN } from "@/services/api";
 
 type Item = { id: number; name: string; coverUrl: string; albumUrls: string[] };
 
 async function listItems(): Promise<Item[]> {
-  const res = await fetch("http://localhost:4000/api/furniture/portfolio");
+  const res = await fetch(`${API_ORIGIN}/api/furniture/portfolio`);
   if (!res.ok) throw new Error("Failed to load portfolio");
   return res.json();
 }
@@ -27,7 +27,7 @@ export default function FurniturePortfolioAdmin() {
     mutationFn: async () => {
       const body = JSON.stringify({ name, coverUrl, albumUrls });
       const res = await fetch(
-        editing ? `http://localhost:4000/api/furniture/portfolio/${editing.id}` : `http://localhost:4000/api/furniture/portfolio`,
+        editing ? `${API_ORIGIN}/api/furniture/portfolio/${editing.id}` : `${API_ORIGIN}/api/furniture/portfolio`,
         { method: editing ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body },
       );
       if (!res.ok) throw new Error("Save failed");
@@ -41,7 +41,7 @@ export default function FurniturePortfolioAdmin() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`http://localhost:4000/api/furniture/portfolio/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_ORIGIN}/api/furniture/portfolio/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["f-portfolio"] }),

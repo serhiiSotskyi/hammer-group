@@ -9,8 +9,10 @@ import { useState } from 'react';
 
 type PortfolioItem = { id: number; name: string; coverUrl: string; albumUrls: string[] };
 
+import { API_ORIGIN } from "@/services/api";
+
 async function fetchPortfolio() {
-  const res = await fetch("http://localhost:4000/api/furniture/portfolio");
+  const res = await fetch(`${API_ORIGIN}/api/furniture/portfolio`);
   if (!res.ok) throw new Error("Failed to load portfolio");
   return res.json() as Promise<PortfolioItem[]>;
 }

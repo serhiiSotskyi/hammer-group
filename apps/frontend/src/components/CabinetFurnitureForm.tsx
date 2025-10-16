@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_ORIGIN } from '@/services/api';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +18,7 @@ export default function CabinetFurnitureForm() {
     e.preventDefault();
     setPending(true);
     try {
-      const res = await fetch('http://localhost:4000/api/contact/furniture', {
+      const res = await fetch(`${API_ORIGIN}/api/contact/furniture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

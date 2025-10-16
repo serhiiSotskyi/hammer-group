@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { API_ORIGIN } from "@/services/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -16,7 +17,7 @@ type Inquiry = {
 };
 
 async function fetchFurnitureInquiries(): Promise<Inquiry[]> {
-  const res = await fetch("http://localhost:4000/api/admin/inquiries?type=FURNITURE", { credentials: 'include' });
+  const res = await fetch(`${API_ORIGIN}/api/admin/inquiries?type=FURNITURE`, { credentials: 'include' });
   if (!res.ok) throw new Error("Failed to load submissions");
   return res.json();
 }
@@ -28,7 +29,7 @@ export default function FurnitureAdmin() {
   const [active, setActive] = useState<Inquiry | null>(null);
   const updateMutation = useMutation({
     mutationFn: async (payload: Partial<Inquiry> & { id: number }) => {
-      const res = await fetch(`http://localhost:4000/api/admin/inquiries/${payload.id}`, {
+      const res = await fetch(`${API_ORIGIN}/api/admin/inquiries/${payload.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ delivered: payload.delivered, adminNotes: payload.adminNotes }),

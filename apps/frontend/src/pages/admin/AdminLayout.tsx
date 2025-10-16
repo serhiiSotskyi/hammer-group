@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { authLogout } from "@/services/api";
+import { authLogout, API_ORIGIN } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 
 type AdminStats = {
@@ -13,7 +13,7 @@ export default function AdminLayout() {
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      const res = await fetch("http://localhost:4000/api/admin/stats", { credentials: 'include' });
+      const res = await fetch(`${API_ORIGIN}/api/admin/stats`, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to load admin stats");
       return res.json();
     },

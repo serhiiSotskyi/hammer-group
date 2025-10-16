@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ProductResponse, resolveImageUrl, uploadImage, getCollections, Collection } from "@/services/api";
+import { ProductResponse, resolveImageUrl, uploadImage, getCollections, Collection, API_ORIGIN } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -92,7 +92,7 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
       };
 
       const response = await fetch(
-        door ? `http://localhost:4000/api/products/${door.id}` : "http://localhost:4000/api/products",
+        door ? `${API_ORIGIN}/api/products/${door.id}` : `${API_ORIGIN}/api/products`,
         {
           method: door ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },

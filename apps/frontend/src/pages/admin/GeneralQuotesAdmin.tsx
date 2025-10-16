@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { API_ORIGIN } from "@/services/api";
 
 type Inquiry = {
   id: number;
@@ -13,7 +14,7 @@ type Inquiry = {
 };
 
 async function fetchGeneralInquiries(): Promise<Inquiry[]> {
-  const res = await fetch("http://localhost:4000/api/admin/inquiries?type=GENERAL", { credentials: 'include' });
+  const res = await fetch(`${API_ORIGIN}/api/admin/inquiries?type=GENERAL`, { credentials: 'include' });
   if (!res.ok) throw new Error("Failed to load general inquiries");
   return res.json();
 }
@@ -24,7 +25,7 @@ export default function GeneralQuotesAdmin() {
 
   const updateMutation = useMutation({
     mutationFn: async (payload: Partial<Inquiry> & { id: number }) => {
-      const res = await fetch(`http://localhost:4000/api/admin/inquiries/${payload.id}`, {
+      const res = await fetch(`${API_ORIGIN}/api/admin/inquiries/${payload.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ delivered: payload.delivered, adminNotes: payload.adminNotes }),

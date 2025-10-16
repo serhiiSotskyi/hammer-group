@@ -31,7 +31,7 @@ app.use(
   }),
 );
 app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
-app.use(express.json({ limit: "8mb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(cookieParser());
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
@@ -957,7 +957,7 @@ app.post("/api/upload", async (req, res) => {
     // Strip possible data URL prefix
     const base64 = data.includes(",") ? data.split(",").pop()! : data;
     const buffer = Buffer.from(base64, "base64");
-    if (buffer.length > 8 * 1024 * 1024) { // 8 MB
+    if (buffer.length > 20 * 1024 * 1024) { // 20 MB
       return res.status(413).json({ error: "File too large" });
     }
 
