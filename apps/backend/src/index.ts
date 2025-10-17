@@ -209,7 +209,12 @@ function signAdminJwt(sub: string) {
 
 function authenticate(req: any, res: any, next: any) {
   try {
-    const token = req.cookies?.[COOKIE_NAME];
+    let token = req.cookies?.[COOKIE_NAME];
+    // Fallback to Authorization: Bearer <token>
+    if (!token && typeof req.headers?.authorization === 'string') {
+      const parts = req.headers.authorization.split(' ');
+      if (parts.length === 2 && /^Bearer$/i.test(parts[0])) token = parts[1];
+    }
     if (!token) return res.status(401).json({ error: "Unauthenticated" });
     const payload = jwt.verify(token, SESSION_SECRET) as JwtClaims;
     (req as any).user = payload;
@@ -244,7 +249,8 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
   });
-  res.status(204).end();
+  // Also return the token for clients that cannot store cross-site cookies
+  res.status(200).json({ token });
 });
 
 app.post("/api/auth/logout", (req, res) => {

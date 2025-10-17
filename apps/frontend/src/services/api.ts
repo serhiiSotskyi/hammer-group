@@ -3,6 +3,22 @@ import { ParamSchemaJSON, PricingBreakdownEntry } from "@/types/paramSchema";
 export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || "";
 const API_URL = `${API_ORIGIN}/api`;
 
+// Auth token storage (fallback for cross-site cookie restrictions)
+const ADMIN_TOKEN_KEY = 'HG_ADMIN_TOKEN';
+export const setAdminToken = (token?: string | null) => {
+  try {
+    if (!token) localStorage.removeItem(ADMIN_TOKEN_KEY);
+    else localStorage.setItem(ADMIN_TOKEN_KEY, token);
+  } catch {}
+};
+export const getAdminToken = () => {
+  try { return localStorage.getItem(ADMIN_TOKEN_KEY) || null; } catch { return null; }
+};
+const authHeaders = () => {
+  const t = getAdminToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
+
 export interface ProductResponse {
   id: number;
   name: string;
@@ -56,7 +72,7 @@ export const getCollections = async (categorySlug: string) => {
 export const createCollection = async (categorySlug: string, payload: { name: string; slug: string; imageUrl?: string | null }) => {
   const res = await fetch(`${API_URL}/admin/collections`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ categorySlug, ...payload }),
     credentials: 'include',
   });
@@ -67,7 +83,7 @@ export const createCollection = async (categorySlug: string, payload: { name: st
 export const updateCollection = async (id: number, payload: Partial<{ name: string; slug: string; imageUrl?: string | null }>) => {
   const res = await fetch(`${API_URL}/admin/collections/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -76,7 +92,7 @@ export const updateCollection = async (id: number, payload: Partial<{ name: stri
 };
 
 export const deleteCollection = async (id: number) => {
-  const res = await fetch(`${API_URL}/admin/collections/${id}`, { method: 'DELETE', credentials: 'include' });
+  const res = await fetch(`${API_URL}/admin/collections/${id}`, { method: 'DELETE', credentials: 'include', headers: { ...authHeaders() } });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body?.error || 'Failed to delete collection');
@@ -85,7 +101,7 @@ export const deleteCollection = async (id: number) => {
 
 // FX admin
 export const getCurrentFx = async () => {
-  const res = await fetch(`${API_URL}/admin/fx/current`, { credentials: 'include' });
+  const res = await fetch(`${API_URL}/admin/fx/current`, { credentials: 'include', headers: { ...authHeaders() } });
   if (!res.ok) throw new Error("Failed to load FX rate");
   return res.json() as Promise<{ base: string; quote: string; rate: number; asOf: string; source: string }>;
 };
@@ -93,7 +109,7 @@ export const getCurrentFx = async () => {
 export const setManualFx = async (rate: number, asOfDate?: string) => {
   const res = await fetch(`${API_URL}/admin/fx`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ rate, asOfDate }),
     credentials: 'include',
   });
@@ -214,7 +230,7 @@ export type AdminQuote = {
 };
 
 export const listAdminQuotes = async (): Promise<AdminQuote[]> => {
-  const res = await fetch(`${API_URL}/admin/quotes`, { credentials: 'include' });
+  const res = await fetch(`${API_URL}/admin/quotes`, { credentials: 'include', headers: { ...authHeaders() } });
   if (!res.ok) throw new Error("Failed to load quotes");
   return res.json();
 };
@@ -225,7 +241,7 @@ export const updateAdminQuote = async (
 ) => {
   const res = await fetch(`${API_URL}/admin/quotes/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -235,7 +251,7 @@ export const updateAdminQuote = async (
 
 // Auth helpers
 export const authMe = async () => {
-  const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });
+  const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include', headers: { ...authHeaders() } });
   if (res.status === 401) return null as const;
   if (!res.ok) throw new Error('Failed to check session');
   return res.json() as Promise<{ role: 'ADMIN' }>;
@@ -249,9 +265,15 @@ export const authLogin = async (email: string, password: string) => {
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Invalid credentials');
+  // Try to read token for header-based auth fallback
+  try {
+    const body = await res.json();
+    if (body?.token) setAdminToken(body.token as string);
+  } catch {}
 };
 
 export const authLogout = async () => {
+  setAdminToken(null);
   await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
 };
 
