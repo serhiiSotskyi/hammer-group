@@ -23,14 +23,33 @@ const app = express();
 const prisma = new PrismaClient();
 
 // Security + CORS
-const FRONTEND_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+// Support multiple origins via CORS_ORIGINS (comma-separated) or legacy CORS_ORIGIN
+const rawOrigins =
+  process.env.CORS_ORIGINS ||
+  process.env.CORS_ORIGIN ||
+  "http://localhost:5173";
+const ALLOWED_ORIGINS = rawOrigins
+  .split(",")
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0);
 app.use(
   helmet({
     // Allow serving images/assets to a different origin in dev (frontend on 8080)
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }),
 );
-app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
+// Use a dynamic origin function to support multiple allowed origins
+app.use(
+  cors({
+    credentials: true,
+    origin: (origin, callback) => {
+      // Allow non-browser or same-origin requests without an Origin header
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS: Origin not allowed: ${origin}`));
+    },
+  }),
+);
 app.use(express.json({ limit: "20mb" }));
 app.use(cookieParser());
 
@@ -57,36 +76,90 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
   if (!schema || typeof schema !== 'object') return schema as ParamSchemaJSON;
   try {
     if (slug === 'interior') {
-      const sizes = schema.groups?.find((g: any) => g.id === 'sizes');
-      if (sizes) {
-        const ensureRange = (id: string, min: number, max: number, def: number) => {
-          let c = sizes.controls?.find((x: any) => x.id === id);
-          if (c) {
-            if ((c.min === 0 && c.max === 0) || c.min == null || c.max == null) {
-              c.min = min; c.max = max; c.step = 10; c.defaultValue = def;
-            } else {
-              // Always enforce desired defaults when missing
-              c.step = c.step ?? 10;
-              if (c.defaultValue == null) c.defaultValue = def;
-            }
+      // 1) Sizes as the first group and represented as dropdowns for height/width/depth
+      let sizes = schema.groups?.find((g: any) => g.id === 'sizes');
+      if (!sizes) {
+        sizes = { id: 'sizes', label: 'Sizes', controls: [] };
+        schema.groups = Array.isArray(schema.groups) ? [...schema.groups] : [];
+        schema.groups.unshift(sizes);
+      } else {
+        schema.groups = [sizes, ...schema.groups.filter((g: any) => g !== sizes)];
+      }
+      const ensureSelect = (id: string, label: string, min: number, max: number, step: number, def: number) => {
+        let c = sizes.controls?.find((x: any) => x.id === id);
+        if (!c || c.type !== 'select') {
+          // Replace with select
+          c = { id, type: 'select', label, required: true, defaultValue: String(def), options: [] };
+          sizes.controls = (sizes.controls || []).filter((x: any) => x.id !== id);
+          sizes.controls.push(c);
+        }
+        // Build options if empty
+        if (!Array.isArray(c.options) || c.options.length === 0) {
+          const opts: any[] = [];
+          for (let v = min; v <= max; v += step) {
+            opts.push({ id: String(v), label: `${v} mm`, priceStrategy: { type: 'FIXED', amountCents: 0 } });
           }
-        };
-        // Height default 2070, keep 1900–2400 range
-        ensureRange('heightMm', 1900, 2400, 2070);
-        // Width 600–1200, default 900
-        ensureRange('widthMm', 600, 1200, 900);
-        // Depth 10–100, default 10
-        ensureRange('depthMm', 10, 100, 10);
-        // Depth pricing: per each 10mm over default
-        const d = sizes.controls?.find((x: any) => x.id === 'depthMm');
-        if (d && (!d.priceStrategy || d.priceStrategy.type !== 'PER_UNIT')) {
-          d.priceStrategy = { type: 'PER_UNIT', unit: 'TEN_MM', rateCents: 0, unitsFrom: 'deltaFromDefault' };
+          c.options = opts;
+        }
+        if (!c.defaultValue) c.defaultValue = String(def);
+      };
+      // Generate selects with 10 mm step
+      ensureSelect('heightMm', 'Height (mm)', 1900, 2400, 10, 2000);
+      ensureSelect('widthMm', 'Width (mm)', 600, 1200, 10, 800);
+      ensureSelect('depthMm', 'Depth (mm)', 10, 100, 10, 10);
+
+      // 2) Casing for front side is only Overlay
+      const casings = schema.groups?.find((g: any) => g.id === 'casings');
+      if (casings) {
+        const front = casings.controls?.find((c: any) => c.id === 'casingFront');
+        if (front && Array.isArray(front.options)) {
+          front.options = front.options.filter((o: any) => o.id === 'overlay');
+          if (!front.options.length) {
+            front.options = [{ id: 'overlay', label: 'Overlay', priceStrategy: { type: 'FIXED', amountCents: 0 } }];
+          }
+          front.defaultValue = 'overlay';
         }
       }
-      // Remove legacy 'dimensions' group that duplicates height/width rules with per-unit pricing
-      if (Array.isArray(schema.groups)) {
-        schema.groups = schema.groups.filter((g: any) => g.id !== 'dimensions');
+
+      // 3) Hinges group: type (звичайні/сховані) and amount (2/3)
+      let hingesGroup = schema.groups?.find((g: any) => g.id === 'hinges');
+      if (!hingesGroup) {
+        hingesGroup = { id: 'hinges', label: 'Hinges', controls: [] };
+        schema.groups = schema.groups || [];
+        schema.groups.push(hingesGroup);
       }
+      let hingeType = hingesGroup.controls.find((c: any) => c.id === 'hingeType');
+      if (!hingeType) {
+        hingeType = {
+          id: 'hingeType',
+          type: 'radio',
+          label: 'Петлі (Hinges)',
+          required: true,
+          defaultValue: 'standard',
+          options: [
+            { id: 'standard', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+            { id: 'hidden', label: 'Сховані', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          ],
+        };
+        hingesGroup.controls.push(hingeType);
+      }
+      let hingeCount = hingesGroup.controls.find((c: any) => c.id === 'hingeCount');
+      if (!hingeCount) {
+        hingeCount = {
+          id: 'hingeCount',
+          type: 'radio',
+          label: 'Кількість петель',
+          required: true,
+          defaultValue: '2',
+          options: [
+            { id: '2', label: '2', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+            { id: '3', label: '3', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          ],
+        };
+        hingesGroup.controls.push(hingeCount);
+      }
+
+      // Keep finish defaults sane
       const finish = schema.groups?.find((g: any) => g.id === 'finishCoat');
       const fc = finish?.controls?.find((c: any) => c.id === 'finishCoat');
       if (fc && Array.isArray(fc.options)) {
@@ -94,6 +167,27 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
           fc.options.unshift({ id: 'standard', label: 'Standard', priceStrategy: { type: 'FIXED', amountCents: 0 } });
         }
         fc.defaultValue = 'standard';
+      }
+
+      // Ensure Opening group exists (standard/reverse)
+      let opening = schema.groups?.find((g: any) => g.id === 'opening');
+      if (!opening) {
+        opening = { id: 'opening', label: 'Opening', controls: [] };
+        schema.groups.push(opening);
+      }
+      let openingCtrl = opening.controls.find((c: any) => c.id === 'opening');
+      if (!openingCtrl) {
+        openingCtrl = {
+          id: 'opening',
+          type: 'radio',
+          label: 'Opening',
+          defaultValue: 'standard',
+          options: [
+            { id: 'standard', label: 'Standard', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+            { id: 'reverse', label: 'Reverse', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          ],
+        };
+        opening.controls.push(openingCtrl);
       }
     } else if (slug === 'concealed') {
       // Ensure sizes group exists and appears first
@@ -185,8 +279,18 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
 
 // Filter helper: keep only controls shown in the Interior customizer
 function filterInterior<T extends { groupId: string; controlId: string }>(lines: T[]): T[] {
-  const allowedGroups = new Set(["doorBlock", "sizes", "finishCoat", "casings", "opening"]);
-  const allowedControls = new Set(["doorBlock", "heightMm", "widthMm", "depthMm", "finishCoat", "casingFront", "casingInner", "opening"]);
+  const allowedGroups = new Set(["doorBlock", "sizes", "finishCoat", "casings", "hinges", "opening"]);
+  const allowedControls = new Set([
+    "doorBlock",
+    // sizes as dropdown
+    "doorSize",
+    // finish/casings
+    "finishCoat", "casingFront", "casingInner",
+    // hinges
+    "hingeType", "hingeCount",
+    // opening
+    "opening",
+  ]);
   return (lines || []).filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
 }
 

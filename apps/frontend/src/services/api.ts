@@ -265,11 +265,23 @@ export const authLogin = async (email: string, password: string) => {
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Invalid credentials');
-  // Try to read token for header-based auth fallback
+  // Robustly parse token from the response body and persist it for Authorization header usage.
   try {
-    const body = await res.json();
-    if (body?.token) setAdminToken(body.token as string);
-  } catch {}
+    const ct = res.headers.get('content-type') || '';
+    let body: any = {};
+    if (ct.includes('application/json')) {
+      body = await res.json();
+    } else {
+      const txt = await res.text();
+      body = txt ? JSON.parse(txt) : {};
+    }
+    if (body?.token && typeof body.token === 'string') {
+      setAdminToken(body.token);
+    }
+  } catch {
+    // Ignore parse errors. Cookie auth may still work if SameSite rules allow it,
+    // but we prefer header auth via HG_ADMIN_TOKEN when available.
+  }
 };
 
 export const authLogout = async () => {

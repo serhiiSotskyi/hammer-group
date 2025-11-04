@@ -10,6 +10,7 @@ import { getProducts, resolveImageUrl, getInteriorSchema, priceInteriorQuote, cr
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +39,10 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
   const [widthMm, setWidthMm] = useState<number | null>(null);
   const [depthMm, setDepthMm] = useState<number | null>(null);
   const [quoteOpen, setQuoteOpen] = useState(false);
+  const [doorSize, setDoorSize] = useState<string | null>(null);
+  const [heightSel, setHeightSel] = useState<string | null>(null);
+  const [widthSel, setWidthSel] = useState<string | null>(null);
+  const [depthSel, setDepthSel] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", phone: "" });
   const schemaDoorBlock = schemaQuery.data?.schema?.groups?.find((g: any) => g.id === 'doorBlock');
   const doorBlockControl = schemaDoorBlock?.controls?.find((c: any) => c.id === 'doorBlock');
@@ -45,9 +50,13 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
   const casingFrontControl = schemaCasings?.controls?.find((c: any) => c.id === 'casingFront');
   const casingInnerControl = schemaCasings?.controls?.find((c: any) => c.id === 'casingInner');
   const schemaSizes = schemaQuery.data?.schema?.groups?.find((g: any) => g.id === 'sizes');
-  const heightControl = schemaSizes?.controls?.find((c: any) => c.id === 'heightMm');
-  const widthControl = schemaSizes?.controls?.find((c: any) => c.id === 'widthMm');
-  const depthControl = schemaSizes?.controls?.find((c: any) => c.id === 'depthMm');
+  const sizeSelect = schemaSizes?.controls?.find((c: any) => c.id === 'doorSize' && c.type === 'select');
+  const heightSelect = schemaSizes?.controls?.find((c: any) => c.id === 'heightMm' && c.type === 'select');
+  const widthSelect  = schemaSizes?.controls?.find((c: any) => c.id === 'widthMm' && c.type === 'select');
+  const depthSelect  = schemaSizes?.controls?.find((c: any) => c.id === 'depthMm' && c.type === 'select');
+  const heightControl = schemaSizes?.controls?.find((c: any) => c.id === 'heightMm' && c.type !== 'select');
+  const widthControl  = schemaSizes?.controls?.find((c: any) => c.id === 'widthMm' && c.type !== 'select');
+  const depthControl  = schemaSizes?.controls?.find((c: any) => c.id === 'depthMm' && c.type !== 'select');
   const schemaOpening = schemaQuery.data?.schema?.groups?.find((g: any) => g.id === 'opening');
   const openingControl = schemaOpening?.controls?.find((c: any) => c.id === 'opening');
   const schemaFinish = schemaQuery.data?.schema?.groups?.find((g: any) => g.id === 'finishCoat');
@@ -63,12 +72,18 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
     if (casingInnerControl && !casingInner) {
       setCasingInner(casingInnerControl.defaultValue || casingInnerControl.options?.[0]?.id || null);
     }
-    if (heightControl && heightMm == null) setHeightMm(heightControl.defaultValue);
-    if (widthControl && widthMm == null) setWidthMm(widthControl.defaultValue);
-    if (depthControl && depthMm == null) setDepthMm(depthControl.defaultValue);
+    if (sizeSelect && !doorSize) setDoorSize(sizeSelect.defaultValue || sizeSelect.options?.[0]?.id || null);
+    if (heightSelect && !heightSel) setHeightSel(heightSelect.defaultValue || heightSelect.options?.[0]?.id || null);
+    if (widthSelect && !widthSel) setWidthSel(widthSelect.defaultValue || widthSelect.options?.[0]?.id || null);
+    if (depthSelect && !depthSel) setDepthSel(depthSelect.defaultValue || depthSelect.options?.[0]?.id || null);
+    if (!sizeSelect && !heightSelect && !widthSelect && !depthSelect) {
+      if (heightControl && heightMm == null) setHeightMm(heightControl.defaultValue);
+      if (widthControl && widthMm == null) setWidthMm(widthControl.defaultValue);
+      if (depthControl && depthMm == null) setDepthMm(depthControl.defaultValue);
+    }
     if (openingControl && !opening) setOpening(openingControl.defaultValue || openingControl.options?.[0]?.id || null);
     if (finishControl && !finishCoat) setFinishCoat(finishControl.defaultValue || finishControl.options?.[0]?.id || null);
-  }, [doorBlockControl?.defaultValue, doorBlockControl?.options, selection, casingFrontControl?.defaultValue, casingFrontControl?.options, casingFront, casingInnerControl?.defaultValue, casingInnerControl?.options, casingInner, heightControl, widthControl, depthControl, heightMm, widthMm, depthMm, openingControl, opening, finishControl, finishCoat]);
+  }, [doorBlockControl?.defaultValue, doorBlockControl?.options, selection, casingFrontControl?.defaultValue, casingFrontControl?.options, casingFront, casingInnerControl?.defaultValue, casingInnerControl?.options, casingInner, sizeSelect, doorSize, heightSelect, heightSel, widthSelect, widthSel, depthSelect, depthSel, heightControl, widthControl, depthControl, heightMm, widthMm, depthMm, openingControl, opening, finishControl, finishCoat]);
 
   const clampToStep = (val: number, min: number, max: number, step: number) => {
     const clamped = Math.min(max, Math.max(min, val));
@@ -101,14 +116,19 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
       heightMm,
       widthMm,
       depthMm,
+      heightSel,
+      widthSel,
+      depthSel,
+      doorSize,
     ],
     queryFn: () => priceInteriorQuote(productSlug, {
       ...(selection ? { doorBlock: selection } : {}),
       ...(casingFront ? { casingFront } : {}),
       ...(casingInner ? { casingInner } : {}),
-      ...(heightMm != null ? { heightMm } : {}),
-      ...(widthMm != null ? { widthMm } : {}),
-      ...(depthMm != null ? { depthMm } : {}),
+      ...(heightSelect && heightSel ? { heightMm: heightSel } : !heightSelect && heightMm != null ? { heightMm } : {}),
+      ...(widthSelect && widthSel ? { widthMm: widthSel } : !widthSelect && widthMm != null ? { widthMm } : {}),
+      ...(depthSelect && depthSel ? { depthMm: depthSel } : !depthSelect && depthMm != null ? { depthMm } : {}),
+      ...(doorSize ? { doorSize } : {}),
       ...(opening ? { opening } : {}),
       ...(finishCoat ? { finishCoat } : {}),
     }),
@@ -120,11 +140,12 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
     ...(selection ? { doorBlock: selection } : {}),
     ...(casingFront ? { casingFront } : {}),
     ...(casingInner ? { casingInner } : {}),
+    ...(heightSelect && heightSel ? { heightMm: heightSel } : !heightSelect && heightMm != null ? { heightMm } : {}),
+    ...(widthSelect && widthSel ? { widthMm: widthSel } : !widthSelect && widthMm != null ? { widthMm } : {}),
+    ...(depthSelect && depthSel ? { depthMm: depthSel } : !depthSelect && depthMm != null ? { depthMm } : {}),
+    ...(doorSize ? { doorSize } : {}),
     ...(opening ? { opening } : {}),
     ...(finishCoat ? { finishCoat } : {}),
-    ...(heightMm != null ? { heightMm } : {}),
-    ...(widthMm != null ? { widthMm } : {}),
-    ...(depthMm != null ? { depthMm } : {}),
   } as Record<string, unknown>;
 
   const quoteMutation = useMutation({
@@ -146,7 +167,7 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
       priceQuery.refetch();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection, casingFront, casingInner, opening, finishCoat, heightMm, widthMm, depthMm]);
+  }, [selection, casingFront, casingInner, opening, finishCoat, heightMm, widthMm, depthMm, heightSel, widthSel, depthSel, doorSize]);
 
   if (productQuery.isLoading) {
     return (
@@ -227,7 +248,7 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
                     .filter((line) => {
                       // Only show groups/controls present in the UI and exclude legacy 'dimensions'
                       const allowedGroups = new Set(['doorBlock','casings','sizes','opening','finishCoat']);
-                      const allowedControls = new Set(['doorBlock','casingFront','casingInner','heightMm','widthMm','depthMm','opening','finishCoat']);
+                      const allowedControls = new Set(['doorBlock','casingFront','casingInner','doorSize','heightMm','widthMm','depthMm','opening','finishCoat']);
                       return allowedGroups.has(line.groupId) && allowedControls.has(line.controlId);
                     })
                     .map((line) => (
@@ -316,6 +337,68 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
                   <CardTitle>{t('schema.groups.sizes', { defaultValue: 'Sizes' })}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {sizeSelect && (
+                    <div className="space-y-2">
+                      <Label>{t('schema.controls.doorSize', { defaultValue: sizeSelect.label || 'Door size' })}</Label>
+                      <Select value={doorSize ?? ''} onValueChange={(v) => setDoorSize(v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('schema.controls.doorSize', { defaultValue: 'Select size' })} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sizeSelect.options?.map((opt: any) => (
+                            <SelectItem key={opt.id} value={opt.id}>{t(`schema.options.doorSize.${opt.id}`, { defaultValue: opt.label })}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {heightSelect && (
+                    <div className="space-y-2">
+                      <Label>{t('schema.controls.heightMm', { defaultValue: heightSelect.label || 'Height (mm)' })}</Label>
+                      <Select value={heightSel ?? ''} onValueChange={(v) => setHeightSel(v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('schema.controls.heightMm', { defaultValue: 'Select height' })} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {heightSelect.options?.map((opt: any) => (
+                            <SelectItem key={opt.id} value={opt.id}>{t(`schema.options.heightMm.${opt.id}`, { defaultValue: opt.label })}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {widthSelect && (
+                    <div className="space-y-2">
+                      <Label>{t('schema.controls.widthMm', { defaultValue: widthSelect.label || 'Width (mm)' })}</Label>
+                      <Select value={widthSel ?? ''} onValueChange={(v) => setWidthSel(v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('schema.controls.widthMm', { defaultValue: 'Select width' })} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {widthSelect.options?.map((opt: any) => (
+                            <SelectItem key={opt.id} value={opt.id}>{t(`schema.options.widthMm.${opt.id}`, { defaultValue: opt.label })}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {depthSelect && (
+                    <div className="space-y-2">
+                      <Label>{t('schema.controls.depthMm', { defaultValue: depthSelect.label || 'Depth (mm)' })}</Label>
+                      <Select value={depthSel ?? ''} onValueChange={(v) => setDepthSel(v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('schema.controls.depthMm', { defaultValue: 'Select depth' })} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {depthSelect.options?.map((opt: any) => (
+                            <SelectItem key={opt.id} value={opt.id}>{t(`schema.options.depthMm.${opt.id}`, { defaultValue: opt.label })}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {!sizeSelect && !heightSelect && !widthSelect && !depthSelect && (
+                  <>
                   {heightControl && (() => {
                     const { min, max, step, def } = allowedMinMax(heightControl);
                     return (
@@ -370,6 +453,8 @@ export default function InteriorCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG 
                       </div>
                     );
                   })()}
+                  </>
+                  )}
                 </CardContent>
               </Card>
             )}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronDown, Play, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
-import heroImage from '@/assets/hero-door.jpg';
+import heroImage from '@/assets/hero2.png';
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -28,9 +28,9 @@ const HeroSection = () => {
       <div className={`relative z-20 text-center max-w-4xl mx-auto px-6 transition-all duration-1000 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}>
-        <h1 className="text-5xl md:text-7xl font-playfair font-bold text-white mb-6">
+        <h1 className="text-5xl md:text-7xl font-playfair font-bold text-white mb-6 uppercase">
           {t('hero.title1')}
-          <span className="block hero-text">{t('hero.title2')}</span>
+          {/* <span className="block hero-text">{t('hero.title2')}</span> */}
         </h1>
         
         <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-2xl mx-auto leading-relaxed">

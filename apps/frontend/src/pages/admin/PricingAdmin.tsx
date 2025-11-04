@@ -125,19 +125,47 @@ export default function PricingAdmin() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Sizes</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardHeader><CardTitle>Sizes (dropdowns)</CardTitle></CardHeader>
+        <CardContent className="space-y-6">
+          {['heightMm','widthMm','depthMm'].map((cid) => {
+            const g = s.groups.find((g: any) => g.id === 'sizes');
+            const c = g?.controls?.find((c: any) => c.id === cid && c.type === 'select');
+            if (!c) return null;
+            return (
+              <div key={cid} className="space-y-2">
+                <div className="text-sm font-medium capitalize">{cid.replace('Mm',' (mm)')}</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {c.options?.map((o: any) => (
+                    <div key={o.id}>
+                      <label className="text-sm block mb-1">{o.label} (USD)</label>
+                      <Input defaultValue={getOptionAmountUSD('sizes', cid, o.id)} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'sizes', controlId: cid, optionId: o.id, costUSD: Number(e.target.value) })} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Hinges</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="text-sm block mb-1">Height surcharge (USD) if &gt; 2070</label>
-            <Input defaultValue={getThresholdUSD('heightMm')} onBlur={(e) => upsert.mutate({ action: 'updateRange', groupId: 'sizes', controlId: 'heightMm', costUSD: Number(e.target.value), strategyType: 'THRESHOLD_FIXED', threshold: 2070 })} />
+            <label className="text-sm block mb-1">Type · Звичайні (USD)</label>
+            <Input defaultValue={getOptionAmountUSD('hinges','hingeType','standard')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'hinges', controlId: 'hingeType', optionId: 'standard', costUSD: Number(e.target.value) })} />
           </div>
           <div>
-            <label className="text-sm block mb-1">Width surcharge (USD) if &gt; 900</label>
-            <Input defaultValue={getThresholdUSD('widthMm')} onBlur={(e) => upsert.mutate({ action: 'updateRange', groupId: 'sizes', controlId: 'widthMm', costUSD: Number(e.target.value), strategyType: 'THRESHOLD_FIXED', threshold: 900 })} />
+            <label className="text-sm block mb-1">Type · Сховані (USD)</label>
+            <Input defaultValue={getOptionAmountUSD('hinges','hingeType','hidden')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'hinges', controlId: 'hingeType', optionId: 'hidden', costUSD: Number(e.target.value) })} />
           </div>
           <div>
-            <label className="text-sm block mb-1">Depth rate per 10mm (USD)</label>
-            <Input defaultValue={getRateUSDPer10()} onBlur={(e) => upsert.mutate({ action: 'updateRange', groupId: 'sizes', controlId: 'depthMm', rateUSDPer10: Number(e.target.value) })} />
+            <label className="text-sm block mb-1">Amount · 2 (USD)</label>
+            <Input defaultValue={getOptionAmountUSD('hinges','hingeCount','2')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'hinges', controlId: 'hingeCount', optionId: '2', costUSD: Number(e.target.value) })} />
+          </div>
+          <div>
+            <label className="text-sm block mb-1">Amount · 3 (USD)</label>
+            <Input defaultValue={getOptionAmountUSD('hinges','hingeCount','3')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'hinges', controlId: 'hingeCount', optionId: '3', costUSD: Number(e.target.value) })} />
           </div>
         </CardContent>
       </Card>

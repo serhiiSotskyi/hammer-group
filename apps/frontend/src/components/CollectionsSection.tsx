@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
-import classicDoor from '@/assets/classic-door.jpg';
-import modernDoor from '@/assets/conclealed-collection.png';
+import classicDoor from '@/assets/interiorCollection.png';
+import modernDoor from '@/assets/conclealedCollection.png';
 import luxuryDoor from '@/assets/furniture-collection.png';
 
 const CollectionsSection = () => {
@@ -19,8 +19,8 @@ const CollectionsSection = () => {
       description: t('collections.cards.interior.description'),
       image: classicDoor,
       features: t('collections.cards.interior.features', { returnObjects: true }) as string[],
-      price: t('collections.cards.interior.price'),
-      bestseller: true,
+      // price: t('collections.cards.interior.price'),
+      bestseller: false,
       to: '/interior-doors',
     },
     {
@@ -29,7 +29,7 @@ const CollectionsSection = () => {
       description: t('collections.cards.concealed.description'),
       image: modernDoor,
       features: t('collections.cards.concealed.features', { returnObjects: true }) as string[],
-      price: t('collections.cards.concealed.price'),
+      // price: t('collections.cards.concealed.price'),
       bestseller: false,
       to: '/concealed-doors',
     },
@@ -39,7 +39,7 @@ const CollectionsSection = () => {
       description: t('collections.cards.furniture.description'),
       image: luxuryDoor,
       features: t('collections.cards.furniture.features', { returnObjects: true }) as string[],
-      price: t('collections.cards.furniture.price'),
+      // price: t('collections.cards.furniture.price'),
       bestseller: false,
       to: '/cabinet-furniture',
     }
@@ -103,9 +103,9 @@ const CollectionsSection = () => {
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  {/* <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-primary">{collection.price}</span>
-                  </div>
+                  </div> */}
                 </CardContent>
               </Card>
             </Link>
