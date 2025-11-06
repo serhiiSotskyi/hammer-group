@@ -155,6 +155,10 @@
       "casings": "Дверні лиштви",
       "sizes": "Розміри",
       "opening": "Відкривання",
+      "frame": "Короб",
+      "lock": "Замок",
+      "stopper": "Стопор",
+      "edge": "Торець",
       "finishCoat": "Фінішне покриття",
       "construction": "Конструкція",
       "finish": "Оздоблення",
@@ -173,6 +177,14 @@
       "widthMm": "Ширина (мм)",
       "depthMm": "Глибина (мм)",
       "opening": "Відкривання",
+      "frameType": "Короб",
+      "lockType": "Замок",
+      "casingOuter": "З зовнішньої сторони",
+      "casingInner": "З внутрішньої сторони",
+      "hingeType": "Тип петель",
+      "hingeCount": "Кількість петель",
+      "stopper": "Стопор",
+      "edgeColor": "Торець",
       "finishCoat": "Фінішне покриття",
       "leafType": "Полотно дверей",
       "leafFill": "Наповнення полотна",
@@ -201,6 +213,49 @@
       "hinges": "Петлі"
     },
     "options": {
+      "opening": {
+        "left": "Ліве",
+        "right": "Праве",
+        "leftInside": "Ліве (Inside)",
+        "rightInside": "Праве (Inside)"
+      },
+      "frameType": {
+        "standard": "Стандарт",
+        "complanar": "Компланарний",
+        "inside": "Inside"
+      },
+      "lockType": {
+        "mechBlack": "Механічний Чорний",
+        "mechChrome": "Механічний Хром",
+        "magBlack": "Магнітний Чорний",
+        "magChrome": "Магнітний Хром"
+      },
+      "casingOuter": {
+        "normal": "Звичайні",
+        "telescopic": "Телескопічні"
+      },
+      "casingInner": {
+        "normal": "Звичайні",
+        "telescopic": "Телескопічні"
+      },
+      "hingeType": {
+        "standard": "Звичайні",
+        "hidden": "Приховані"
+      },
+      "stopper": {
+        "none": "Not Selected",
+        "phantom": "Фантом",
+        "mvm": "MVM"
+      },
+      "edgeColor": {
+        "none": "Not Selected",
+        "black": "Чорний",
+        "gold": "Золотий",
+        "silver": "Срібний"
+      },
+      "finishCoat": {
+        "pvc": "ПВХ"
+      },
       "doorBlock": {
         "standard": "Короб стандартний",
         "complanar": "Короб компланарний",

@@ -76,119 +76,213 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
   if (!schema || typeof schema !== 'object') return schema as ParamSchemaJSON;
   try {
     if (slug === 'interior') {
-      // 1) Sizes as the first group and represented as dropdowns for height/width/depth
-      let sizes = schema.groups?.find((g: any) => g.id === 'sizes');
-      if (!sizes) {
-        sizes = { id: 'sizes', label: 'Sizes', controls: [] };
-        schema.groups = Array.isArray(schema.groups) ? [...schema.groups] : [];
-        schema.groups.unshift(sizes);
-      } else {
-        schema.groups = [sizes, ...schema.groups.filter((g: any) => g !== sizes)];
-      }
-      const ensureSelect = (id: string, label: string, min: number, max: number, step: number, def: number) => {
-        let c = sizes.controls?.find((x: any) => x.id === id);
-        if (!c || c.type !== 'select') {
-          // Replace with select
-          c = { id, type: 'select', label, required: true, defaultValue: String(def), options: [] };
-          sizes.controls = (sizes.controls || []).filter((x: any) => x.id !== id);
-          sizes.controls.push(c);
+      // Ensure groups array
+      schema.groups = Array.isArray(schema.groups) ? [...schema.groups] : [];
+
+      // Sizes group (dropdowns)
+      let sizes = schema.groups.find((g: any) => g.id === 'sizes');
+      if (!sizes) { sizes = { id: 'sizes', label: 'Розміри', controls: [] }; schema.groups.unshift(sizes); }
+      const ensureSelect = (group: any, id: string, label: string, values: number[], def: number) => {
+        let existing = group.controls?.find((x: any) => x.id === id);
+        if (!existing || existing.type !== 'select') {
+          const preservedStrategy = existing?.priceStrategy;
+          const c: any = { id, type: 'select', label, required: true, defaultValue: String(def), options: [] };
+          if (preservedStrategy) c.priceStrategy = preservedStrategy; // preserve control-level strategy (e.g., PER_UNIT for depth)
+          group.controls = (group.controls || []).filter((x: any) => x.id !== id);
+          group.controls.push(c);
+          existing = c;
         }
-        // Build options if empty
-        if (!Array.isArray(c.options) || c.options.length === 0) {
-          const opts: any[] = [];
-          for (let v = min; v <= max; v += step) {
-            opts.push({ id: String(v), label: `${v} mm`, priceStrategy: { type: 'FIXED', amountCents: 0 } });
-          }
-          c.options = opts;
+        if (!Array.isArray((existing as any).options) || (existing as any).options.length === 0) {
+          (existing as any).options = values.map((v: number) => ({ id: String(v), label: `${v} mm`, priceStrategy: { type: 'FIXED', amountCents: 0 } }));
         }
-        if (!c.defaultValue) c.defaultValue = String(def);
+        if (!(existing as any).defaultValue) (existing as any).defaultValue = String(def);
       };
-      // Generate selects with 10 mm step
-      ensureSelect('heightMm', 'Height (mm)', 1900, 2400, 10, 2000);
-      ensureSelect('widthMm', 'Width (mm)', 600, 1200, 10, 800);
-      ensureSelect('depthMm', 'Depth (mm)', 10, 100, 10, 10);
+      const range = (min: number, max: number, step: number) => { const out: number[] = []; for (let v = min; v <= max; v += step) out.push(v); return out; };
+      ensureSelect(sizes, 'heightMm', 'Висота (мм)', range(2000, 2400, 10), 2000);
+      ensureSelect(sizes, 'widthMm', 'Ширина (мм)', range(300, 900, 10), 800);
+      ensureSelect(sizes, 'depthMm', 'Глибина (мм)', range(100, 400, 10), 100);
 
-      // 2) Casing for front side is only Overlay
-      const casings = schema.groups?.find((g: any) => g.id === 'casings');
-      if (casings) {
-        const front = casings.controls?.find((c: any) => c.id === 'casingFront');
-        if (front && Array.isArray(front.options)) {
-          front.options = front.options.filter((o: any) => o.id === 'overlay');
-          if (!front.options.length) {
-            front.options = [{ id: 'overlay', label: 'Overlay', priceStrategy: { type: 'FIXED', amountCents: 0 } }];
-          }
-          front.defaultValue = 'overlay';
-        }
-      }
-
-      // 3) Hinges group: type (звичайні/сховані) and amount (2/3)
-      let hingesGroup = schema.groups?.find((g: any) => g.id === 'hinges');
-      if (!hingesGroup) {
-        hingesGroup = { id: 'hinges', label: 'Hinges', controls: [] };
-        schema.groups = schema.groups || [];
-        schema.groups.push(hingesGroup);
-      }
-      let hingeType = hingesGroup.controls.find((c: any) => c.id === 'hingeType');
-      if (!hingeType) {
-        hingeType = {
-          id: 'hingeType',
-          type: 'radio',
-          label: 'Петлі (Hinges)',
-          required: true,
-          defaultValue: 'standard',
-          options: [
-            { id: 'standard', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-            { id: 'hidden', label: 'Сховані', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          ],
-        };
-        hingesGroup.controls.push(hingeType);
-      }
-      let hingeCount = hingesGroup.controls.find((c: any) => c.id === 'hingeCount');
-      if (!hingeCount) {
-        hingeCount = {
-          id: 'hingeCount',
-          type: 'radio',
-          label: 'Кількість петель',
-          required: true,
-          defaultValue: '2',
-          options: [
-            { id: '2', label: '2', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-            { id: '3', label: '3', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          ],
-        };
-        hingesGroup.controls.push(hingeCount);
-      }
-
-      // Keep finish defaults sane
-      const finish = schema.groups?.find((g: any) => g.id === 'finishCoat');
-      const fc = finish?.controls?.find((c: any) => c.id === 'finishCoat');
-      if (fc && Array.isArray(fc.options)) {
-        if (!fc.options.find((o: any) => o.id === 'standard')) {
-          fc.options.unshift({ id: 'standard', label: 'Standard', priceStrategy: { type: 'FIXED', amountCents: 0 } });
-        }
-        fc.defaultValue = 'standard';
-      }
-
-      // Ensure Opening group exists (standard/reverse)
-      let opening = schema.groups?.find((g: any) => g.id === 'opening');
-      if (!opening) {
-        opening = { id: 'opening', label: 'Opening', controls: [] };
-        schema.groups.push(opening);
-      }
+      // Opening
+      let opening = schema.groups.find((g: any) => g.id === 'opening');
+      if (!opening) { opening = { id: 'opening', label: 'Відкривання', controls: [] }; schema.groups.push(opening); }
       let openingCtrl = opening.controls.find((c: any) => c.id === 'opening');
+      const openingDefaults = [
+        { id: 'left', label: 'Ліве', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'right', label: 'Праве', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'leftInside', label: 'Ліве (Inside)', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'rightInside', label: 'Праве (Inside)', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+      ];
       if (!openingCtrl) {
-        openingCtrl = {
-          id: 'opening',
-          type: 'radio',
-          label: 'Opening',
-          defaultValue: 'standard',
-          options: [
-            { id: 'standard', label: 'Standard', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-            { id: 'reverse', label: 'Reverse', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          ],
-        };
+        openingCtrl = { id: 'opening', type: 'select', label: 'Відкривання', defaultValue: 'left', options: openingDefaults };
         opening.controls.push(openingCtrl);
+      } else {
+        // Ensure all 4 opening options exist; do not remove any existing
+        openingCtrl.type = 'select';
+        openingCtrl.options = Array.isArray(openingCtrl.options) ? openingCtrl.options : [];
+        for (const def of openingDefaults) {
+          if (!openingCtrl.options.find((o: any) => o.id === def.id)) openingCtrl.options.push(def);
+        }
+        if (!openingCtrl.defaultValue || !openingCtrl.options.find((o: any) => o.id === openingCtrl.defaultValue)) {
+          (openingCtrl as any).defaultValue = 'left';
+        }
       }
+
+      // Frame (Короб)
+      let frame = schema.groups.find((g: any) => g.id === 'frame');
+      if (!frame) { frame = { id: 'frame', label: 'Короб', controls: [] }; schema.groups.push(frame); }
+      let frameType = frame.controls.find((c: any) => c.id === 'frameType');
+      if (!frameType) {
+        frameType = { id: 'frameType', type: 'select', label: 'Короб', defaultValue: 'standard', options: [
+          { id: 'standard', label: 'Стандарт', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'complanar', label: 'Компланарний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'inside', label: 'Inside', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ]};
+        frame.controls.push(frameType);
+      }
+
+      // Lock (Замок)
+      let lock = schema.groups.find((g: any) => g.id === 'lock');
+      if (!lock) { lock = { id: 'lock', label: 'Замок', controls: [] }; schema.groups.push(lock); }
+      let lockType = lock.controls.find((c: any) => c.id === 'lockType');
+      if (!lockType) {
+        lockType = { id: 'lockType', type: 'select', label: 'Тип замка', defaultValue: 'mechBlack', options: [
+          { id: 'mechBlack', label: 'Механічний Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'mechChrome', label: 'Механічний Хром', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'magBlack', label: 'Магнітний Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'magChrome', label: 'Магнітний Хром', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ]};
+        lock.controls.push(lockType);
+      }
+
+      // Casings (Лиштва): Outer only 'Звичайні'; Inner 'Звичайні' and 'Телескопічні'
+      let casings = schema.groups.find((g: any) => g.id === 'casings');
+      if (!casings) { casings = { id: 'casings', label: 'Лиштва', controls: [] }; schema.groups.push(casings); }
+      let casingOuter = casings.controls.find((c: any) => c.id === 'casingOuter');
+      if (!casingOuter) {
+        casingOuter = { id: 'casingOuter', type: 'select', label: 'З зовнішньої сторони', defaultValue: 'normal', options: [
+          { id: 'normal', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ]};
+        casings.controls.push(casingOuter);
+      } else {
+        casingOuter.type = 'select';
+        // Restrict to only 'normal'
+        casingOuter.options = Array.isArray(casingOuter.options) ? casingOuter.options.filter((o: any) => o.id === 'normal') : [];
+        if (!casingOuter.options.find((o: any) => o.id === 'normal')) {
+          casingOuter.options.push({ id: 'normal', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } });
+        }
+        casingOuter.defaultValue = 'normal';
+      }
+      let casingInner = casings.controls.find((c: any) => c.id === 'casingInner');
+      if (!casingInner) {
+        casingInner = { id: 'casingInner', type: 'select', label: 'З внутрішньої сторони', defaultValue: 'normal', options: [
+          { id: 'normal', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'telescopic', label: 'Телескопічні', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ]};
+        casings.controls.push(casingInner);
+      } else {
+        casingInner.type = 'select';
+        // Keep only allowed ids and remove legacy 'overlay'
+        const allowed = new Set(['normal','telescopic']);
+        const current = Array.isArray(casingInner.options) ? casingInner.options : [];
+        casingInner.options = current.filter((o: any) => allowed.has(o.id));
+        if (!casingInner.options.find((o: any) => o.id === 'normal')) casingInner.options.push({ id: 'normal', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } });
+        if (!casingInner.options.find((o: any) => o.id === 'telescopic')) casingInner.options.push({ id: 'telescopic', label: 'Телескопічні', priceStrategy: { type: 'FIXED', amountCents: 0 } });
+        casingInner.defaultValue = casingInner.defaultValue && ['normal','telescopic'].includes(casingInner.defaultValue) ? casingInner.defaultValue : 'normal';
+      }
+
+      // Hinges (Петлі)
+      let hinges = schema.groups.find((g: any) => g.id === 'hinges');
+      if (!hinges) { hinges = { id: 'hinges', label: 'Петлі', controls: [] }; schema.groups.push(hinges); }
+      let hingeType = hinges.controls.find((c: any) => c.id === 'hingeType');
+      if (!hingeType) {
+        hingeType = { id: 'hingeType', type: 'select', label: 'Тип петель', defaultValue: 'standard', options: [
+          { id: 'standard', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'hidden', label: 'Приховані', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ]};
+        hinges.controls.push(hingeType);
+      }
+      let hingeCount = hinges.controls.find((c: any) => c.id === 'hingeCount');
+      const countDefaults = [
+        { id: '3', label: '3', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: '4', label: '4', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: '5', label: '5', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+      ];
+      if (!hingeCount) {
+        hingeCount = { id: 'hingeCount', type: 'select', label: 'Кількість петель', defaultValue: '3', options: countDefaults };
+        hinges.controls.push(hingeCount);
+      } else {
+        // Force to select with exactly 3,4,5 options (remove legacy '2')
+        hingeCount.type = 'select';
+        hingeCount.options = countDefaults;
+        hingeCount.defaultValue = ['3','4','5'].includes(hingeCount.defaultValue) ? hingeCount.defaultValue : '3';
+      }
+
+      // Stopper (Стопор)
+      let stopper = schema.groups.find((g: any) => g.id === 'stopper');
+      if (!stopper) { stopper = { id: 'stopper', label: 'Стопор', controls: [] }; schema.groups.push(stopper); }
+      let stopperCtrl = stopper.controls.find((c: any) => c.id === 'stopper');
+      if (!stopperCtrl) {
+        stopperCtrl = { id: 'stopper', type: 'select', label: 'Стопор', defaultValue: 'none', options: [
+          { id: 'none', label: 'Not Selected', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'phantom', label: 'Фантом', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'mvm', label: 'MVM', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ]};
+        stopper.controls.push(stopperCtrl);
+      }
+      // Ensure 'Not Selected' exists and is first/default
+      if (stopperCtrl) {
+        stopperCtrl.type = 'select';
+        const opts = Array.isArray(stopperCtrl.options) ? stopperCtrl.options : [];
+        let none = opts.find((o: any) => o.id === 'none');
+        if (!none) {
+          opts.unshift({ id: 'none', label: 'Not Selected', priceStrategy: { type: 'FIXED', amountCents: 0 } });
+        } else {
+          none.label = 'Not Selected';
+        }
+        stopperCtrl.options = [opts.find((o: any) => o.id === 'none'), ...opts.filter((o: any) => o.id !== 'none')];
+        stopperCtrl.defaultValue = 'none';
+      }
+
+      // Edge (Торець)
+      let edge = schema.groups.find((g: any) => g.id === 'edge');
+      if (!edge) { edge = { id: 'edge', label: 'Торець', controls: [] }; schema.groups.push(edge); }
+      let edgeColor = edge.controls.find((c: any) => c.id === 'edgeColor');
+      if (!edgeColor) {
+        edgeColor = { id: 'edgeColor', type: 'select', label: 'Торець', defaultValue: 'none', options: [
+          { id: 'none', label: 'Not Selected', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'black', label: 'Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'gold', label: 'Золотий', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'silver', label: 'Срібний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ]};
+        edge.controls.push(edgeColor);
+      }
+      // Ensure 'Not Selected' exists and is first/default for edge
+      if (edgeColor) {
+        edgeColor.type = 'select';
+        const opts = Array.isArray(edgeColor.options) ? edgeColor.options : [];
+        let none = opts.find((o: any) => o.id === 'none');
+        if (!none) {
+          opts.unshift({ id: 'none', label: 'Not Selected', priceStrategy: { type: 'FIXED', amountCents: 0 } });
+        } else {
+          none.label = 'Not Selected';
+        }
+        edgeColor.options = [opts.find((o: any) => o.id === 'none'), ...opts.filter((o: any) => o.id !== 'none')];
+        edgeColor.defaultValue = 'none';
+      }
+
+      // Finish coat (Покриття)
+      let finish = schema.groups.find((g: any) => g.id === 'finishCoat');
+      if (!finish) { finish = { id: 'finishCoat', label: 'Покриття', controls: [] }; schema.groups.push(finish); }
+      let fc = finish.controls.find((c: any) => c.id === 'finishCoat');
+      if (!fc) {
+        fc = { id: 'finishCoat', type: 'select', label: 'Покриття', defaultValue: 'pvc', options: [
+          { id: 'pvc', label: 'ПВХ', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ]};
+        finish.controls.push(fc);
+      }
+
+      // Set default displayMultiplier if missing
+      (schema as any).displayMultiplier = typeof (schema as any).displayMultiplier === 'number' && (schema as any).displayMultiplier > 0 ? (schema as any).displayMultiplier : 1.3;
     } else if (slug === 'concealed') {
       // Ensure sizes group exists and appears first
       let sizes = schema.groups?.find((g: any) => g.id === 'sizes');
@@ -279,17 +373,28 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
 
 // Filter helper: keep only controls shown in the Interior customizer
 function filterInterior<T extends { groupId: string; controlId: string }>(lines: T[]): T[] {
-  const allowedGroups = new Set(["doorBlock", "sizes", "finishCoat", "casings", "hinges", "opening"]);
+  const allowedGroups = new Set([
+    'sizes','opening','frame','lock','casings','hinges','stopper','edge','finishCoat'
+  ]);
   const allowedControls = new Set([
-    "doorBlock",
-    // sizes as dropdown
-    "doorSize",
-    // finish/casings
-    "finishCoat", "casingFront", "casingInner",
-    // hinges
-    "hingeType", "hingeCount",
+    // sizes
+    'heightMm','widthMm','depthMm',
     // opening
-    "opening",
+    'opening',
+    // frame
+    'frameType',
+    // lock
+    'lockType',
+    // casings
+    'casingOuter','casingInner',
+    // hinges
+    'hingeType','hingeCount','hinges',
+    // stopper
+    'stopper',
+    // edge
+    'edgeColor',
+    // finish
+    'finishCoat',
   ]);
   return (lines || []).filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
 }
@@ -795,13 +900,20 @@ app.post("/api/price", async (req, res) => {
     const fx = await getDailyUsdToUah(prisma);
     const conv = (c: number) => convertCentsUsdToUah(c, fx.rate);
     const { normalizedSelections, ...priced } = result;
+    // Apply optional display multiplier before FX
+    const mult = typeof (schema as any).displayMultiplier === 'number' && (schema as any).displayMultiplier > 0 ? (schema as any).displayMultiplier : 1;
+    const scale = (v: number) => Math.round(v * mult);
+    const scaledBase = scale(priced.basePriceCents);
+    const scaledBreakdown = priced.breakdown.map((b) => ({ ...b, deltaCents: scale(b.deltaCents) }));
+    const scaledAdjustments = scaledBreakdown.reduce((sum, b) => sum + b.deltaCents, 0);
+    const scaledTotal = scaledBase + scaledAdjustments;
     res.json({
       currency: "UAH",
-      basePriceCents: conv(priced.basePriceCents),
-      adjustmentsCents: conv(priced.adjustmentsCents),
-      totalPriceCents: conv(priced.totalPriceCents),
+      basePriceCents: conv(scaledBase),
+      adjustmentsCents: conv(scaledAdjustments),
+      totalPriceCents: conv(scaledTotal),
       rounding: priced.rounding,
-      breakdown: priced.breakdown.map((b) => ({ ...b, deltaCents: conv(b.deltaCents) })),
+      breakdown: scaledBreakdown.map((b) => ({ ...b, deltaCents: conv(b.deltaCents) })),
       fx: { base: "USD", quote: "UAH", rate: fx.rate, asOf: fx.asOf, source: fx.source },
     });
   } catch (error) {
@@ -850,7 +962,22 @@ app.post("/api/quotes", async (req, res) => {
     const priced = priceQuote(product.basePriceCents, schemaJson, selections ?? {});
     const fx = await getDailyUsdToUah(prisma);
     const conv = (c: number) => convertCentsUsdToUah(c, fx.rate);
-    const { normalizedSelections, ...payload } = priced;
+    // Apply optional display multiplier before FX
+    const mult = typeof (schemaJson as any).displayMultiplier === 'number' && (schemaJson as any).displayMultiplier > 0 ? (schemaJson as any).displayMultiplier : 1;
+    const scale = (v: number) => Math.round(v * mult);
+    const scaledBase = scale(priced.basePriceCents);
+    const scaledBreakdown = priced.breakdown.map((b) => ({ ...b, deltaCents: scale(b.deltaCents) }));
+    const scaledAdjustments = scaledBreakdown.reduce((sum, b) => sum + b.deltaCents, 0);
+    const scaledTotal = scaledBase + scaledAdjustments;
+    const normalizedSelections = priced.normalizedSelections;
+    const payload = {
+      currency: priced.currency,
+      basePriceCents: scaledBase,
+      adjustmentsCents: scaledAdjustments,
+      totalPriceCents: scaledTotal,
+      rounding: priced.rounding,
+      breakdown: scaledBreakdown,
+    };
 
     // Build resolved selections for admin readability
     const controlMap: Record<string, { control: Control; groupId: string; groupLabel: string }> = {};
@@ -1424,7 +1551,14 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
     let schema = active.json as any;
     if (!schema || typeof schema !== 'object') schema = { currency: 'GBP', rounding: { mode: 'HALF_UP', minorUnit: 1 }, groups: [] };
 
-    // Locate group/control
+    // Special action: set display multiplier at schema root
+    if (action === 'setDisplayMultiplier') {
+      const m = Number(req.body?.multiplier);
+      if (!Number.isFinite(m) || m <= 0) return res.status(400).json({ error: 'Valid multiplier required' });
+      schema.displayMultiplier = m;
+    }
+
+    // Locate group/control (for control/option actions)
     let group = schema.groups.find((g: any) => g.id === groupId);
     if (!group) {
       group = { id: groupId, label: groupId, controls: [] };
@@ -1457,47 +1591,23 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
         }
       }
     } else if (action === 'updateRange') {
-      // Ensure control has range config
-      control.type = 'range';
-      // Provide sensible defaults if not set yet
-      if (control.min == null || control.max == null || (control.min === 0 && control.max === 0)) {
-        if (controlId === 'heightMm') {
-          control.min = 1900;
-          control.max = 2400;
-          control.defaultValue = 2070;
-        } else if (controlId === 'widthMm') {
-          control.min = 600;
-          control.max = 1200;
-          control.defaultValue = 900;
-        } else if (controlId === 'depthMm') {
-          control.min = 10;
-          control.max = 100;
-          control.defaultValue = 10;
-        } else {
-          control.min = control.min ?? 0;
-          control.max = control.max ?? 100;
-          control.defaultValue = control.defaultValue ?? control.min;
-        }
-      } else {
-        control.min = control.min ?? 0;
-        control.max = control.max ?? 0;
-        control.defaultValue = control.defaultValue ?? control.min;
-      }
-      control.step = 10;
+      // For depthMm we keep select UI but set control-level PER_UNIT strategy
       if (controlId === 'depthMm') {
-        // Depth pricing per 10mm over default
         let rc = typeof rateCents === 'number' ? Math.round(rateCents) : undefined;
         if (rc === undefined && typeof rateUSDPer10 === 'number') rc = Math.round(rateUSDPer10 * MARKUP * 100);
         if (rc === undefined) return res.status(400).json({ error: 'Provide rateCents or rateUSDPer10' });
-        control.priceStrategy = { type: 'PER_UNIT', unit: 'TEN_MM', rateCents: rc, unitsFrom: 'deltaFromDefault' };
-      } else if (control.priceStrategy?.type === 'THRESHOLD_FIXED' || (req.body?.strategyType === 'THRESHOLD_FIXED')) {
+        control.type = control.type || 'select';
+        control.step = 10;
+        // Base default depth for delta is 100mm
+        control.defaultValue = control.defaultValue ?? '100';
+        control.priceStrategy = { type: 'PER_UNIT', unit: 'TEN_MM', rateCents: rc, unitsFrom: 'deltaFromDefault' } as any;
+      } else if (controlId === 'heightMm') {
+        // Height threshold bump: set THRESHOLD_FIXED at 2100 by default
         const amt = computeAmount();
-        if (threshold !== undefined) control.priceStrategy = { type: 'THRESHOLD_FIXED', compare: 'GT', threshold: Number(threshold), amountCents: amt ?? (control.priceStrategy?.amountCents ?? 0) };
-        else if (amt !== undefined) control.priceStrategy = { ...(control.priceStrategy ?? { type: 'THRESHOLD_FIXED', compare: 'GT', threshold: 0 }), amountCents: amt };
+        control.priceStrategy = { type: 'THRESHOLD_FIXED', compare: 'GT', threshold: Number(threshold ?? 2100), amountCents: amt ?? (control.priceStrategy?.amountCents ?? 0) } as any;
       } else {
-        // treat as PER_UNIT
-        // For height/width we enforce threshold pricing; reject per-unit for these
-        return res.status(400).json({ error: 'Only THRESHOLD_FIXED is supported for this control' });
+        // Other controls not supported via updateRange in Interior
+        return res.status(400).json({ error: 'Unsupported control for updateRange' });
       }
     } else if (action === 'upsertOptionTiered') {
       // Set tiered pricing based on a reference control (concealed rules)
@@ -1511,6 +1621,8 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
       const belowCents = Math.round(req.body.belowUSD * MARKUP * 100);
       const aboveCents = Math.round(req.body.aboveUSD * MARKUP * 100);
       opt.priceStrategy = { type: 'TIERED_BY_CONTROL', controlId: refId, threshold: thr, belowAmountCents: belowCents, aboveAmountCents: aboveCents };
+    } else if (action === 'setDisplayMultiplier') {
+      // already handled above
     } else {
       return res.status(400).json({ error: 'Unsupported action' });
     }

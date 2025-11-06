@@ -192,6 +192,45 @@ export function priceQuote(
     }
   } catch {}
 
+  // Post-processing: hinges per-unit (hingeType × hingeCount)
+  try {
+    const hingesGroup = schema.groups.find((g) => g.controls.some((c) => c.id === 'hingeType' || c.id === 'hingeCount'));
+    const hingeTypeCtrl = hingesGroup?.controls.find((c) => c.id === 'hingeType') as SelectControl | undefined;
+    const hingeCountCtrl = hingesGroup?.controls.find((c) => c.id === 'hingeCount') as SelectControl | undefined;
+    const typeSel = normalizedSelections['hingeType'];
+    const countSel = normalizedSelections['hingeCount'];
+    if (hingeTypeCtrl && hingeCountCtrl && typeof typeSel === 'string') {
+      const opt = hingeTypeCtrl.options.find((o) => o.id === typeSel);
+      const countStr = typeof countSel === 'string' ? countSel : (hingeCountCtrl.defaultValue || '3');
+      const countNum = Number(countStr);
+      if (opt && Number.isFinite(countNum)) {
+        const deltaPerUnit = calculateDelta(opt.priceStrategy, {
+          schema,
+          productBaseCents,
+          currentTotalCents,
+          normalizedSelections,
+          control: (hingeTypeCtrl as unknown) as Control,
+          group: hingesGroup!,
+          normalizedValue: typeSel,
+          option: opt as any,
+        } as any);
+        const deltaTotal = deltaPerUnit * countNum;
+        adjustmentsCents += deltaTotal;
+        currentTotalCents += deltaTotal;
+        breakdown.push({
+          controlId: 'hinges',
+          controlLabel: hingeTypeCtrl.label || 'Hinges',
+          groupId: hingesGroup!.id,
+          groupLabel: hingesGroup!.label,
+          selection: `${typeSel}×${countNum}`,
+          displayValue: `${typeSel} × ${countNum}`,
+          strategy: opt.priceStrategy,
+          deltaCents: deltaTotal,
+        });
+      }
+    }
+  } catch {}
+
   if (issues.length > 0) {
     throw new SelectionValidationError(issues);
   }
@@ -277,16 +316,44 @@ function processChoiceControl(
     throwValidationError(control, group, "Invalid option selected");
   }
 
-  const deltaCents = calculateDelta(option.priceStrategy, {
+  // If both hingeType and hingeCount exist in schema, defer hinge pricing to post-processing
+  if (control.id === 'hingeType') {
+    const hasCount = context.schema.groups.some((g) => g.controls.some((c) => c.id === 'hingeCount'));
+    if (hasCount) {
+      return { normalizedValue: selection, deltaCents: 0 };
+    }
+  }
+
+  // Opening rule: Left/Right never add value
+  if (control.id === 'opening' && (selection === 'left' || selection === 'right')) {
+    return {
+      normalizedValue: selection,
+      deltaCents: 0,
+      breakdownEntry: buildBreakdownEntry(context, selection, option.label, undefined, 0),
+    };
+  }
+
+  // Start with option-level delta
+  let deltaCents = calculateDelta(option.priceStrategy, {
     ...context,
     normalizedValue: selection,
     option,
   });
+  // Apply control-level strategy too (e.g., PER_UNIT for depthMm select)
+  if ((control as any).priceStrategy) {
+    const ctrlStrat = (control as any).priceStrategy as any;
+    let normalizedValue: unknown = selection;
+    if (ctrlStrat.type === 'PER_UNIT' || ctrlStrat.type === 'THRESHOLD_FIXED') {
+      const num = typeof selection === 'string' ? Number(selection) : (selection as any);
+      if (!Number.isNaN(num)) normalizedValue = num;
+    }
+    deltaCents += calculateDelta(ctrlStrat, { ...context, normalizedValue } as any);
+  }
 
   return {
     normalizedValue: selection,
     deltaCents,
-    breakdownEntry: buildBreakdownEntry(context, selection, option.label, option.priceStrategy, deltaCents),
+    breakdownEntry: buildBreakdownEntry(context, selection, option.label, (control as any).priceStrategy || option.priceStrategy, deltaCents),
   };
 }
 
@@ -477,8 +544,9 @@ function calculateTieredByControl(
   strategy: Extract<PriceStrategy, { type: "TIERED_BY_CONTROL" }>,
   context: SelectionContext & { normalizedValue: unknown },
 ): number {
-  const refVal = context.normalizedSelections[strategy.controlId];
-  if (typeof refVal !== "number") return 0;
+  const refRaw = context.normalizedSelections[strategy.controlId];
+  const refVal = typeof refRaw === 'number' ? refRaw : (typeof refRaw === 'string' ? Number(refRaw) : NaN);
+  if (!Number.isFinite(refVal)) return 0;
   const useAbove = refVal > strategy.threshold;
   const cents = useAbove ? strategy.aboveAmountCents : strategy.belowAmountCents;
   return roundMinor(

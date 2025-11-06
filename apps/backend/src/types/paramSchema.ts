@@ -94,6 +94,9 @@ export interface ParamSchemaJSON {
     mode: "HALF_UP" | "HALF_DOWN" | "HALF_EVEN";
     minorUnit: number;
   };
+  // Optional display multiplier applied to user-facing totals
+  // Does not affect stored USD schema amounts
+  displayMultiplier?: number;
   groups: ParamSchemaGroup[];
 }
 

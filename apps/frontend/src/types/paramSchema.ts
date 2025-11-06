@@ -86,6 +86,7 @@ export interface ParamSchemaJSON {
     mode: "HALF_UP" | "HALF_DOWN" | "HALF_EVEN";
     minorUnit: number;
   };
+  displayMultiplier?: number;
   groups: ParamSchemaGroup[];
 }
 

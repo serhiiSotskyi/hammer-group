@@ -156,6 +156,10 @@
       "casings": "Door Casings",
       "sizes": "Sizes",
       "opening": "Opening",
+      "frame": "Frame",
+      "lock": "Lock",
+      "stopper": "Stopper",
+      "edge": "Edge",
       "finishCoat": "Finish coat",
       "construction": "Door Construction",
       "finish": "Finish",
@@ -174,6 +178,14 @@
       "widthMm": "Width (mm)",
       "depthMm": "Depth (mm)",
       "opening": "Opening",
+      "frameType": "Frame",
+      "lockType": "Lock",
+      "casingOuter": "Outer side",
+      "casingInner": "Inner side",
+      "hingeType": "Hinge type",
+      "hingeCount": "Hinge count",
+      "stopper": "Stopper",
+      "edgeColor": "Edge color",
       "finishCoat": "Finish coat",
       "leafType": "Door Leaf",
       "leafFill": "Leaf Fill",
@@ -202,6 +214,49 @@
       "hinges": "Hinges"
     },
     "options": {
+      "opening": {
+        "left": "Left",
+        "right": "Right",
+        "leftInside": "Left (Inside)",
+        "rightInside": "Right (Inside)"
+      },
+      "frameType": {
+        "standard": "Standard",
+        "complanar": "Complanar",
+        "inside": "Inside"
+      },
+      "lockType": {
+        "mechBlack": "Mechanical Black",
+        "mechChrome": "Mechanical Chrome",
+        "magBlack": "Magnetic Black",
+        "magChrome": "Magnetic Chrome"
+      },
+      "casingOuter": {
+        "normal": "Regular",
+        "telescopic": "Telescopic"
+      },
+      "casingInner": {
+        "normal": "Regular",
+        "telescopic": "Telescopic"
+      },
+      "hingeType": {
+        "standard": "Standard",
+        "hidden": "Hidden"
+      },
+      "stopper": {
+        "none": "Not Selected",
+        "phantom": "Phantom",
+        "mvm": "MVM"
+      },
+      "edgeColor": {
+        "none": "Not Selected",
+        "black": "Black",
+        "gold": "Gold",
+        "silver": "Silver"
+      },
+      "finishCoat": {
+        "pvc": "PVC"
+      },
       "doorBlock": {
         "standard": "Standard frame",
         "complanar": "Complanar frame",
