@@ -20,6 +20,15 @@ import { ParamSchemaJSON, Control, SelectControl, RadioControl, BooleanControl, 
 dotenv.config();
 
 const app = express();
+// Behind Azure (or any reverse proxy), Express must trust the proxy so that
+// req.ip and middleware like express-rate-limit read X-Forwarded-For safely.
+// Controlled by env; default on for production.
+const TRUST_PROXY = (process.env.TRUST_PROXY ?? 'true').toLowerCase() !== 'false';
+if (TRUST_PROXY) {
+  const hopsRaw = process.env.TRUST_PROXY_HOPS ?? '1';
+  const hops = Number(hopsRaw);
+  app.set('trust proxy', Number.isFinite(hops) ? hops : true);
+}
 const prisma = new PrismaClient();
 
 // Security + CORS
