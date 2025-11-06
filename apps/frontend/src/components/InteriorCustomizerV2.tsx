@@ -95,25 +95,9 @@ export default function InteriorCustomizerV2({ productSlug = DEFAULT_PRODUCT_SLU
     onError: (e: unknown) => toast({ title: t('customizer.quoteFailedTitle'), description: e instanceof Error ? e.message : t('customizer.quoteFailedDesc'), variant: 'destructive' }),
   });
 
-  if (productQuery.isLoading || schemaQuery.isLoading) {
-    return (
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-6">
-          <Skeleton className="h-10 w-64 mx-auto mb-10" />
-          <Skeleton className="h-[420px] w-full" />
-        </div>
-      </section>
-    );
-  }
-  const product = productQuery.data;
-  if (!product || !schema) {
-    return <section className="py-20 bg-background"><div className="container mx-auto px-6 text-center text-muted-foreground">{t('customizer.unable')}</div></section>;
-  }
-
+  // Define values and hooks used later BEFORE any early returns to keep hook order stable
   const currency = 'UAH';
   const price = priceQuery.data;
-
-  // Build the exact list of breakdown lines we display, and use it to compute adjustments
   const displayedLines = useMemo(() => {
     if (!price?.breakdown) return [] as typeof price.breakdown;
     const allowed = new Set(['heightMm','widthMm','depthMm','opening','frameType','lockType','casingOuter','casingInner','hinges','stopper','edgeColor','finishCoat']);
@@ -129,6 +113,21 @@ export default function InteriorCustomizerV2({ productSlug = DEFAULT_PRODUCT_SLU
     return Object.values(reduced);
   }, [price?.breakdown]);
   const uiAdjustmentsCents = useMemo(() => displayedLines.reduce((s, l) => s + l.deltaCents, 0), [displayedLines]);
+
+  if (productQuery.isLoading || schemaQuery.isLoading) {
+    return (
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-6">
+          <Skeleton className="h-10 w-64 mx-auto mb-10" />
+          <Skeleton className="h-[420px] w-full" />
+        </div>
+      </section>
+    );
+  }
+  const product = productQuery.data;
+  if (!product || !schema) {
+    return <section className="py-20 bg-background"><div className="container mx-auto px-6 text-center text-muted-foreground">{t('customizer.unable')}</div></section>;
+  }
 
   const renderSelect = (ctrl?: SelectControl, id?: string) => {
     if (!ctrl) return null;
