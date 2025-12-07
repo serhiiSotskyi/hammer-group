@@ -13,10 +13,12 @@ i18n
       en: { translation: en },
       uk: { translation: uk }
     },
-    fallbackLng: 'en',
+    // Force Ukrainian as the only language in the UI
+    fallbackLng: 'uk',
     interpolation: { escapeValue: false },
     detection: {
-      order: ['localStorage','navigator','htmlTag'],
+      // Prefer stored choice but default to Ukrainian; no auto-switching to English
+      order: ['localStorage','htmlTag','navigator'],
       caches: ['localStorage'],
     },
     react: { useSuspense: false },
@@ -27,5 +29,9 @@ i18n.on('languageChanged', (lng) => {
   document.documentElement.lang = lng?.startsWith('uk') ? 'uk' : 'en';
 });
 
-export default i18n;
+// Ensure Ukrainian is selected on boot
+if (!i18n.language || !i18n.language.startsWith('uk')) {
+  i18n.changeLanguage('uk');
+}
 
+export default i18n;

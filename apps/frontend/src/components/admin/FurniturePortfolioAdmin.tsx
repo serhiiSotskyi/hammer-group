@@ -82,8 +82,8 @@ export default function FurniturePortfolioAdmin() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Furniture Portfolio</h2>
-        <Button onClick={() => startEdit()}>Add Item</Button>
+        <h2 className="text-xl font-semibold">Портфоліо меблів</h2>
+        <Button onClick={() => startEdit()}>Додати елемент</Button>
       </div>
 
       {/* Editor */}
@@ -96,13 +96,13 @@ export default function FurniturePortfolioAdmin() {
             </div>
             <div className="flex items-center gap-2">
               <Input type="file" accept="image/*" onChange={(e) => e.target.files && onCoverFile(e.target.files[0])} />
-              {uploading && <span className="text-xs text-muted-foreground">Uploading...</span>}
+              {uploading && <span className="text-xs text-muted-foreground">Завантаження...</span>}
             </div>
           </div>
 
           {/* Album upload */}
           <div className="space-y-2">
-            <div className="text-sm font-medium">Album Images</div>
+            <div className="text-sm font-medium">Зображення альбому</div>
             <div className="flex flex-wrap gap-2">
               {albumUrls.map((u, idx) => (
                 <div key={idx} className="relative w-16 h-16 border rounded overflow-hidden">
@@ -114,19 +114,19 @@ export default function FurniturePortfolioAdmin() {
             </div>
             <Input type="file" multiple accept="image/*" onChange={(e) => e.target.files && onAlbumFiles(e.target.files)} />
           </div>
-          <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input placeholder="Назва" value={name} onChange={(e) => setName(e.target.value)} />
           <div className="flex gap-2">
             <Button disabled={!name || !coverUrl || saveMutation.isPending} onClick={() => saveMutation.mutate()}>
-              {saveMutation.isPending ? "Saving..." : "Save"}
+              {saveMutation.isPending ? "Збереження..." : "Зберегти"}
             </Button>
-            <Button variant="outline" onClick={() => { setEditing(null); setName(""); setCoverUrl(null); setAlbumUrls([]); setShowEditor(false); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setEditing(null); setName(""); setCoverUrl(null); setAlbumUrls([]); setShowEditor(false); }}>Скасувати</Button>
           </div>
         </Card>
       )}
 
       {/* List */}
       <div className="grid gap-3">
-        {isLoading && <p>Loading...</p>}
+        {isLoading && <p>Завантаження...</p>}
         {data?.map((it) => (
           <Card key={it.id} className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -134,9 +134,9 @@ export default function FurniturePortfolioAdmin() {
               <span className="font-medium">{it.name}</span>
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => startEdit(it)}>Edit</Button>
+              <Button variant="secondary" onClick={() => startEdit(it)}>Редагувати</Button>
               <Button variant="destructive" onClick={() => deleteMutation.mutate(it.id)} disabled={deleteMutation.isPending}>
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                {deleteMutation.isPending ? "Видалення..." : "Видалити"}
               </Button>
             </div>
           </Card>

@@ -12,6 +12,7 @@ import { formatCurrencyByLang } from '@/lib/format';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +50,7 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
   const openingCtrl = findCtrl('opening', 'opening') as SelectControl | undefined;
   const finishCtrl = findCtrl('finish', 'finishType') as SelectControl | undefined;
   const hingesCtrl = findCtrl('hinges', 'hinges') as SelectControl | undefined;
+  const edgeCtrl = findCtrl('edge', 'edgeColor') as SelectControl | undefined;
   const hardwareGroup = schema?.groups.find((g) => g.id === 'hardware');
 
   // Selections
@@ -70,6 +72,8 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
       ...(finishCtrl ? { finishType: finishCtrl.defaultValue ?? finishCtrl.options[0]?.id } : {}),
       // Only set hinges default for Budget doors; for Standard, server derives by height
       ...((product?.doorType === 'BUDGET' && hingesCtrl) ? { hinges: hingesCtrl.defaultValue ?? hingesCtrl.options[0]?.id } : {}),
+      // Edge default (Budget shows this explicitly)
+      ...(edgeCtrl ? { edgeColor: edgeCtrl.defaultValue ?? edgeCtrl.options[0]?.id } : {}),
       // Hardware booleans default false
       ...((hardwareGroup?.controls || []).reduce((acc: any, c) => {
         if (c.type === 'boolean') acc[c.id] = (c as BooleanControl).defaultValue ?? false;
@@ -216,18 +220,30 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardContent>
                   <div>
                     <Label>{t('schema.controls.heightMm', { defaultValue: 'Height (mm)' })}</Label>
-                    <Input
-                      type="number"
-                      min={heightCtrl.min}
-                      max={heightMaxUi}
-                      step={heightCtrl.step}
-                      value={Number(sel.heightMm ?? heightCtrl.defaultValue)}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        const clamped = Math.max(heightCtrl.min ?? v, Math.min(heightMaxUi, v));
+                    <Select
+                      value={String(sel.heightMm ?? heightCtrl.defaultValue)}
+                      onValueChange={(v) => {
+                        const num = Number(v);
+                        const clamped = Math.max(heightCtrl.min ?? num, Math.min(heightMaxUi, num));
                         setVal('heightMm', clamped);
                       }}
-                    />
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={String(heightCtrl.defaultValue)} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(() => {
+                          const min = Number(heightCtrl.min ?? 2000);
+                          const max = Number(heightMaxUi);
+                          const step = Number(heightCtrl.step ?? 10);
+                          const items: number[] = [];
+                          for (let v = min; v <= max; v += step) items.push(v);
+                          return items.map((v) => (
+                            <SelectItem key={v} value={String(v)}>{v} mm</SelectItem>
+                          ));
+                        })()}
+                      </SelectContent>
+                    </Select>
                     {product?.doorType === 'BUDGET' && <p className="text-xs text-muted-foreground">Max 2100 mm for Universal doors</p>}
                   </div>
                 </CardContent>
@@ -241,7 +257,7 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardContent className="space-y-3">
                   <Label>{t('schema.controls.frame', { defaultValue: frameCtrl.label })}</Label>
                   <RadioGroup value={(sel.frame as string) ?? ''} onValueChange={(v) => setVal('frame', v)}>
-                    {frameCtrl.options.map((o) => (
+                    {(product?.doorType === 'BUDGET' ? frameCtrl.options.filter((o) => o.id === 'wood') : frameCtrl.options).map((o) => (
                       <div key={o.id} className="flex items-center space-x-3 opacity-100">
                         <RadioGroupItem value={o.id} id={`frame-${o.id}`} disabled={o.id === 'wood' && timberDisabled} />
                         <Label htmlFor={`frame-${o.id}`} className={o.id === 'wood' && timberDisabled ? 'text-gray-400' : ''}>{t(`schema.options.frame.${o.id}`, { defaultValue: o.label })}</Label>
@@ -260,7 +276,7 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardContent className="space-y-3">
                   <Label>{t('schema.controls.installType', { defaultValue: installCtrl.label })}</Label>
                   <RadioGroup value={(sel.installType as string) ?? ''} onValueChange={(v) => setVal('installType', v)}>
-                    {installCtrl.options.map((o) => (
+                    {(product?.doorType === 'BUDGET' ? installCtrl.options.filter((o) => o.id === 'flushPlaster') : installCtrl.options).map((o) => (
                       <div key={o.id} className="flex items-center space-x-3">
                         <RadioGroupItem value={o.id} id={`install-${o.id}`} />
                         <Label htmlFor={`install-${o.id}`}>{t(`schema.options.installType.${o.id}`, { defaultValue: o.label })}</Label>
@@ -307,6 +323,24 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
               </Card>
             )}
 
+            {/* Edge (Budget visible) */}
+            {edgeCtrl && (
+              <Card>
+                <CardHeader><CardTitle>{t('schema.groups.edge', { defaultValue: 'Торець' })}</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <Label>{t('schema.controls.edgeColor', { defaultValue: edgeCtrl.label })}</Label>
+                  <RadioGroup value={(sel.edgeColor as string) ?? ''} onValueChange={(v) => setVal('edgeColor', v)}>
+                    {edgeCtrl.options.map((o) => (
+                      <div key={o.id} className="flex items-center space-x-3">
+                        <RadioGroupItem value={o.id} id={`edge-${o.id}`} />
+                        <Label htmlFor={`edge-${o.id}`}>{o.label}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Hinges: user can select; options below minimum are disabled based on height */}
             {hingesCtrl && (
               <Card>
@@ -314,15 +348,21 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardContent className="space-y-3">
                   <Label>{t('schema.controls.hinges', { defaultValue: hingesCtrl.label ?? 'Hinges' })}</Label>
                   <RadioGroup value={(sel.hinges as string) ?? ''} onValueChange={(v) => setVal('hinges', v)}>
-                    {hingesCtrl.options.map((o) => {
-                      const disabled = (heightVal > 2100 && o.id === '3') || (heightVal > 2300 && (o.id === '3' || o.id === '4'));
-                      return (
-                        <div key={o.id} className="flex items-center space-x-3">
-                          <RadioGroupItem value={o.id} id={`hinges-${o.id}`} disabled={disabled} />
-                          <Label htmlFor={`hinges-${o.id}`} className={disabled ? 'text-gray-400' : ''}>{o.label}</Label>
-                        </div>
-                      );
-                    })}
+                    {(() => {
+                      const isBudget = product?.doorType === 'BUDGET';
+                      const ids = isBudget ? ['2','3','4'] : ['3','4','5'];
+                      const mkLabel = (id: string) => isBudget ? `${id}A` : (id === '3' ? '3A' : id === '4' ? '4B' : '5B');
+                      return ids.map((id) => {
+                        const disabled = !isBudget && ((heightVal > 2100 && id === '3') || (heightVal > 2300 && (id === '3' || id === '4')));
+                        const label = mkLabel(id);
+                        return (
+                          <div key={id} className="flex items-center space-x-3">
+                            <RadioGroupItem value={id} id={`hinges-${id}`} disabled={disabled} />
+                            <Label htmlFor={`hinges-${id}`} className={disabled ? 'text-gray-400' : ''}>{label}</Label>
+                          </div>
+                        );
+                      });
+                    })()}
                   </RadioGroup>
                 </CardContent>
               </Card>

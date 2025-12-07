@@ -253,7 +253,20 @@ async function main() {
     const concealedSchemaV1 = {
       currency: "GBP",
       rounding: { mode: "HALF_UP", minorUnit: 1 },
+      displayMultiplier: 1.3,
+      // Concealed pricing helpers
+      hingeUnitPrices: { A: 0, B: 0 },
+      openingInsideSurcharge: { wood: 0, aluminium: 0 },
+      heightSurcharges: { over2100: 0, over2300: 0 },
       groups: [
+        {
+          id: 'sizes',
+          label: 'Sizes',
+          controls: [
+            { id: 'heightMm', type: 'range', label: 'Height (mm)', min: 2000, max: 3000, step: 10, defaultValue: 2100 },
+            // optional width/depth can be added later
+          ],
+        },
         {
           id: "construction",
           label: "Construction",
@@ -298,17 +311,35 @@ async function main() {
           ],
         },
         {
+          id: 'install',
+          label: 'Installation',
+          controls: [
+            { id: 'installType', type: 'radio', label: 'Тип монтажу', required: true, defaultValue: 'flushPlaster', options: [
+              { id: 'flushPlaster', label: 'Під штукатурку', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+              { id: 'flushPanels', label: 'Під панелі', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+            ] },
+          ],
+        },
+        {
+          id: 'opening',
+          label: 'Сторона відкривання',
+          controls: [
+            { id: 'opening', type: 'radio', label: 'Сторона', required: true, defaultValue: 'left', options: [
+              { id: 'left', label: 'Ліве', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+              { id: 'right', label: 'Праве', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+              { id: 'leftInside', label: 'Ліве inside', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+              { id: 'rightInside', label: 'Праве inside', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+            ] },
+          ],
+        },
+        {
           id: "hardware",
           label: "Hardware",
           controls: [
-            { id: "hinge", type: "boolean", label: "Hinge (mortised)", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 1300 } },
-            { id: "lock", type: "boolean", label: "Lock (mortised)", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 1300 } },
-            { id: "stop-phantom", type: "boolean", label: "Magnetic stop (Phantom)", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 3500 } },
-            { id: "stop-mvm", type: "boolean", label: "Magnetic stop (MVM)", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 2000 } },
-            { id: "handle", type: "boolean", label: "Handle", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 0 } },
-            { id: "latch", type: "boolean", label: "Latch", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 0 } },
-            { id: "decor", type: "boolean", label: "Decorative element", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 0 } },
-            { id: "aligner", type: "boolean", label: "Aligner", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 2000 } },
+            { id: "magneticLock", type: "boolean", label: "Magnetic lock", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 0 } },
+            { id: "magneticStopper", type: "boolean", label: "Magnetic stopper", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 0 } },
+            { id: "dropDownThreshold", type: "boolean", label: "Drop-down threshold", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 0 } },
+            { id: "paintFrameCasing", type: "boolean", label: "Paint frame + casing", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 0 } },
           ],
         },
         {
@@ -319,21 +350,16 @@ async function main() {
             { id: "paint-box-frame", type: "boolean", label: "Paint box and frame", defaultValue: false, priceStrategy: { type: "FIXED", amountCents: 2000 } },
           ],
         },
+        // Hinges select for budget overrides 2/3/4 defined dynamically; for standard, server per-unit logic applies
         {
-          id: "profile",
-          label: "Profile / Markup",
+          id: 'hinges',
+          label: 'Петлі',
           controls: [
-            {
-              id: "profileType",
-              type: "radio",
-              label: "Profile",
-              required: true,
-              defaultValue: "standard",
-              options: [
-                { id: "standard", label: "Standard (25%)", priceStrategy: { type: "PERCENT", percent: 0.25, base: "RUNNING_TOTAL" } },
-                { id: "budget", label: "Budget (30%)", priceStrategy: { type: "PERCENT", percent: 0.30, base: "RUNNING_TOTAL" } },
-              ],
-            },
+            { id: 'hinges', type: 'select', label: 'Hinges', defaultValue: '3', options: [
+              { id: '3', label: '3', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+              { id: '4', label: '4', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+              { id: '5', label: '5', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+            ] },
           ],
         },
       ],

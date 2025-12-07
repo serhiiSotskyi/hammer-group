@@ -50,25 +50,25 @@ export default function FurnitureAdmin() {
       <br />
       <br />
       <br />
-      <h1 className="text-3xl font-bold mb-6">Furniture Quotes</h1>
+      <h1 className="text-3xl font-bold mb-6">Заявки на меблі</h1>
 
       <div className="grid gap-10">
         {/* Submissions table */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4">User Requests</h2>
-          {isLoading && <p>Loading...</p>}
-          {error && <p className="text-red-500">Failed to load</p>}
+          <h2 className="text-2xl font-semibold mb-4">Запити користувачів</h2>
+          {isLoading && <p>Завантаження…</p>}
+          {error && <p className="text-red-500">Не вдалося завантажити</p>}
           {!isLoading && !error && (
             <div className="max-w-full overflow-x-auto">
               <table className="w-max min-w-[1000px] text-sm">
                 <thead>
                   <tr className="text-left border-b">
-                    <th className="p-2 whitespace-nowrap">Created</th>
-                    <th className="p-2 whitespace-nowrap">Name</th>
-                    <th className="p-2 whitespace-nowrap">Phone</th>
-                    <th className="p-2 whitespace-nowrap">Delivered</th>
-                    <th className="p-2 whitespace-nowrap">Admin Notes</th>
-                    <th className="p-2 whitespace-nowrap">Actions</th>
+                    <th className="p-2 whitespace-nowrap">Створено</th>
+                    <th className="p-2 whitespace-nowrap">Ім'я</th>
+                    <th className="p-2 whitespace-nowrap">Телефон</th>
+                    <th className="p-2 whitespace-nowrap">Опрацьовано</th>
+                    <th className="p-2 whitespace-nowrap">Нотатки</th>
+                    <th className="p-2 whitespace-nowrap">Дії</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -94,11 +94,11 @@ export default function FurnitureAdmin() {
                               updateMutation.mutate({ id: q.id, adminNotes: val });
                             }
                           }}
-                          placeholder="Add note..."
+                          placeholder="Додати нотатку..."
                         />
                       </td>
                       <td className="p-2 whitespace-nowrap">
-                        <Button size="sm" variant="secondary" onClick={() => { setActive(q); setOpen(true); }}>View</Button>
+                        <Button size="sm" variant="secondary" onClick={() => { setActive(q); setOpen(true); }}>Переглянути</Button>
                       </td>
                     </tr>
                   ))}
@@ -112,16 +112,16 @@ export default function FurnitureAdmin() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Inquiry Details</DialogTitle>
+            <DialogTitle>Деталі запиту</DialogTitle>
           </DialogHeader>
           {active && (
             <div className="space-y-2 text-sm">
-              <div><span className="font-medium">Created:</span> {new Date(active.createdAt).toLocaleString()}</div>
-              <div><span className="font-medium">Name:</span> {active.name}</div>
-              <div><span className="font-medium">Email:</span> {active.email || '-'}</div>
-              <div><span className="font-medium">Phone:</span> {active.phone || '-'}</div>
+              <div><span className="font-medium">Створено:</span> {new Date(active.createdAt).toLocaleString()}</div>
+              <div><span className="font-medium">Ім'я:</span> {active.name}</div>
+              <div><span className="font-medium">Ел. пошта:</span> {active.email || '-'}</div>
+              <div><span className="font-medium">Телефон:</span> {active.phone || '-'}</div>
               <div className="mt-4">
-                <div className="font-medium mb-1">Message</div>
+                <div className="font-medium mb-1">Повідомлення</div>
                 <div className="whitespace-pre-wrap">{active.message || '-'}</div>
               </div>
             </div>

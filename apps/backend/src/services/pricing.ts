@@ -153,6 +153,113 @@ export function priceQuote(
     });
   });
 
+  // Fallback: ensure 'frameType' pricing applies (interior)
+  try {
+    const frameGroup = schema.groups.find((g) => g.controls.some((c) => c.id === 'frameType'));
+    const frameCtrl = frameGroup?.controls.find((c) => c.id === 'frameType') as SelectControl | undefined;
+    const sel = normalizedSelections['frameType'];
+    if (frameCtrl && typeof sel === 'string') {
+      const already = breakdown.find((b) => b.controlId === 'frameType');
+      const opt = frameCtrl.options.find((o) => o.id === sel);
+      if (opt && (!already || already.deltaCents === 0)) {
+        const delta = calculateDelta(opt.priceStrategy, {
+          schema,
+          productBaseCents,
+          currentTotalCents,
+          normalizedSelections,
+          control: (frameCtrl as unknown) as Control,
+          group: frameGroup!,
+          normalizedValue: sel,
+          option: opt,
+        } as any);
+        if (delta) {
+          adjustmentsCents += delta;
+          currentTotalCents += delta;
+          breakdown.push({
+            controlId: 'frameType',
+            controlLabel: frameCtrl.label || 'Короб',
+            groupId: frameGroup!.id,
+            groupLabel: frameGroup!.label,
+            selection: sel,
+            displayValue: String(sel),
+            strategy: opt.priceStrategy,
+            deltaCents: delta,
+          });
+        }
+      }
+    }
+  } catch {}
+
+  // Post-processing: height surcharges >2100 and >2300 (concealed)
+  try {
+    const hs = (schema as any).heightSurcharges as { over2100?: number; over2300?: number } | undefined;
+    const heightVal = normalizedSelections['heightMm'];
+    if (hs && typeof heightVal === 'number') {
+      const sizesGroup = schema.groups.find((g) => g.controls.some((c) => c.id === 'heightMm'));
+      const heightCtrl = sizesGroup?.controls.find((c) => c.id === 'heightMm') as RangeControl | SelectControl | undefined;
+      if (heightCtrl) {
+        if (heightVal > 2100 && (hs.over2100 ?? 0) > 0) {
+          const delta = roundMinor(hs.over2100!, schema.rounding.mode, schema.rounding.minorUnit);
+          adjustmentsCents += delta;
+          currentTotalCents += delta;
+          breakdown.push({
+            controlId: 'heightMm',
+            controlLabel: heightCtrl.label || 'Height',
+            groupId: sizesGroup!.id,
+            groupLabel: sizesGroup!.label,
+            selection: heightVal,
+            displayValue: String(heightVal),
+            strategy: { type: 'FIXED', amountCents: hs.over2100 } as any,
+            deltaCents: delta,
+          });
+        }
+        if (heightVal > 2300 && (hs.over2300 ?? 0) > 0) {
+          const delta = roundMinor(hs.over2300!, schema.rounding.mode, schema.rounding.minorUnit);
+          adjustmentsCents += delta;
+          currentTotalCents += delta;
+          breakdown.push({
+            controlId: 'heightMm',
+            controlLabel: heightCtrl.label || 'Height',
+            groupId: sizesGroup!.id,
+            groupLabel: sizesGroup!.label,
+            selection: heightVal,
+            displayValue: String(heightVal),
+            strategy: { type: 'FIXED', amountCents: hs.over2300 } as any,
+            deltaCents: delta,
+          });
+        }
+      }
+    }
+  } catch {}
+
+  // Post-processing: concealed opening inside surcharge (depends on frame)
+  try {
+    const openingGroup = schema.groups.find((g) => g.controls.some((c) => c.id === 'opening'));
+    const openingCtrl = openingGroup?.controls.find((c) => c.id === 'opening') as SelectControl | undefined;
+    const selOpening = normalizedSelections['opening'];
+    const frameSel = normalizedSelections['frame'];
+    const sur = (schema as any).openingInsideSurcharge as { wood?: number; aluminium?: number } | undefined;
+    const isBudget = Boolean((schema as any).budget);
+    if (!isBudget && openingCtrl && typeof selOpening === 'string' && (selOpening === 'leftInside' || selOpening === 'rightInside') && typeof frameSel === 'string' && sur) {
+      const amount = frameSel === 'aluminium' ? (sur.aluminium ?? 0) : (sur.wood ?? 0);
+      const deltaCents = roundMinor(amount, schema.rounding.mode, schema.rounding.minorUnit);
+      if (deltaCents) {
+        adjustmentsCents += deltaCents;
+        currentTotalCents += deltaCents;
+        breakdown.push({
+          controlId: 'opening',
+          controlLabel: openingCtrl.label || 'Opening',
+          groupId: openingGroup!.id,
+          groupLabel: openingGroup!.label,
+          selection: selOpening,
+          displayValue: String(selOpening),
+          strategy: { type: 'FIXED', amountCents: amount } as any,
+          deltaCents,
+        });
+      }
+    }
+  } catch {}
+
   // Post-processing: derive hinges from height if a 'hinges' radio control exists
   try {
     const hingesGroup = schema.groups.find((g) => g.controls.some((c) => c.id === 'hinges'));
@@ -188,6 +295,63 @@ export function priceQuote(
           strategy: opt.priceStrategy,
           deltaCents,
         });
+      }
+    }
+  } catch {}
+
+  // Post-processing: hinges per-unit (concealed standard) via schema.hingeUnitPrices
+  try {
+    const hup = (schema as any).hingeUnitPrices as { A?: number; B?: number } | undefined;
+    const isBudget = Boolean((schema as any).budget);
+    const heightVal = normalizedSelections['heightMm'];
+    if (!isBudget && hup && typeof heightVal === 'number') {
+      const count = heightVal <= 2100 ? 3 : heightVal <= 2300 ? 4 : 5;
+      const type = count === 3 ? 'A' : 'B';
+      const unit = (hup as any)[type] ?? 0;
+      const amount = roundMinor(unit * count, schema.rounding.mode, schema.rounding.minorUnit);
+      if (amount) {
+        adjustmentsCents += amount;
+        currentTotalCents += amount;
+        breakdown.push({
+          controlId: 'hinges',
+          controlLabel: 'Hinges',
+          groupId: 'hinges',
+          groupLabel: 'Петлі',
+          selection: `${type}×${count}`,
+          displayValue: `${type} × ${count}`,
+          strategy: { type: 'FIXED', amountCents: unit } as any,
+          deltaCents: amount,
+        });
+      }
+    }
+  } catch {}
+
+  // Post-processing: hinges per-unit (concealed budget) — count is user-selected 2/3/4, unit = A
+  try {
+    const hup = (schema as any).hingeUnitPrices as { A?: number; B?: number } | undefined;
+    const isBudget = Boolean((schema as any).budget);
+    const hingesGroup = schema.groups.find((g) => g.controls.some((c) => c.id === 'hinges'));
+    const hingesCtrl = hingesGroup?.controls.find((c) => c.id === 'hinges') as SelectControl | undefined;
+    const sel = normalizedSelections['hinges'];
+    if (isBudget && hup && hingesCtrl && typeof sel === 'string') {
+      const count = Number(sel);
+      if (Number.isFinite(count) && count > 0) {
+        const unit = hup.A ?? 0;
+        const amount = roundMinor(unit * count, schema.rounding.mode, schema.rounding.minorUnit);
+        if (amount) {
+          adjustmentsCents += amount;
+          currentTotalCents += amount;
+          breakdown.push({
+            controlId: 'hinges',
+            controlLabel: hingesCtrl.label || 'Hinges',
+            groupId: hingesGroup!.id,
+            groupLabel: hingesGroup!.label,
+            selection: String(sel),
+            displayValue: `${count} × A`,
+            strategy: { type: 'FIXED', amountCents: unit } as any,
+            deltaCents: amount,
+          });
+        }
       }
     }
   } catch {}
@@ -301,8 +465,9 @@ function processChoiceControl(
   if (control.id === 'frame' && typeof h === 'number' && h > 2300 && selection === 'wood') {
     throwValidationError(control, group, 'Timber not available above 2300 mm');
   }
-  // Concealed rule: hinges availability based on height
-  if (control.id === 'hinges' && typeof h === 'number') {
+  // Concealed rule: hinges availability based on height (standard only)
+  const isBudgetSchema = Boolean((context.schema as any)?.budget);
+  if (control.id === 'hinges' && typeof h === 'number' && !isBudgetSchema) {
     if (h > 2300 && (selection === '3' || selection === '4')) {
       throwValidationError(control, group, '3 and 4 hinges not available above 2300 mm');
     }

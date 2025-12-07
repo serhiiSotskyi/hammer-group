@@ -46,23 +46,23 @@ export default function GeneralQuotesAdmin() {
       <br />
       <br />
       <br />
-      <h1 className="text-3xl font-bold mb-6">General Quotes</h1>
-      <p className="mb-6 text-muted-foreground">Submissions from the contact form.</p>
+      <h1 className="text-3xl font-bold mb-6">Загальні заявки</h1>
+      <p className="mb-6 text-muted-foreground">Надіслані через контактну форму.</p>
 
-      {isLoading && <p>Loading...</p>}
-      {error && <p className="text-red-500">Failed to load</p>}
+      {isLoading && <p>Завантаження…</p>}
+      {error && <p className="text-red-500">Не вдалося завантажити</p>}
       {!isLoading && !error && (
         <div className="max-w-full overflow-x-auto">
           <table className="w-max min-w-[1000px] text-sm">
             <thead>
               <tr className="text-left border-b">
-                <th className="p-2 whitespace-nowrap">Created</th>
-                <th className="p-2 whitespace-nowrap">Name</th>
-                <th className="p-2 whitespace-nowrap">Email</th>
-                <th className="p-2 whitespace-nowrap">Phone</th>
-                <th className="p-2 whitespace-nowrap">Message</th>
-                <th className="p-2 whitespace-nowrap">Delivered</th>
-                <th className="p-2 whitespace-nowrap">Admin Notes</th>
+                <th className="p-2 whitespace-nowrap">Створено</th>
+                <th className="p-2 whitespace-nowrap">Ім'я</th>
+                <th className="p-2 whitespace-nowrap">Ел. пошта</th>
+                <th className="p-2 whitespace-nowrap">Телефон</th>
+                <th className="p-2 whitespace-nowrap">Повідомлення</th>
+                <th className="p-2 whitespace-nowrap">Опрацьовано</th>
+                <th className="p-2 whitespace-nowrap">Нотатки</th>
               </tr>
             </thead>
             <tbody>
@@ -90,7 +90,7 @@ export default function GeneralQuotesAdmin() {
                           updateMutation.mutate({ id: q.id, adminNotes: val });
                         }
                       }}
-                      placeholder="Add note..."
+                      placeholder="Додати нотатку..."
                     />
                   </td>
                 </tr>

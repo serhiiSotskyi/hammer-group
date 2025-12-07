@@ -32,12 +32,12 @@ export default function DoorTable({ categoryId, categorySlug, collectionSlug, de
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["doors"] }),
   });
 
-  if (isLoading) return <p>Loading...</p>;
+  if (isLoading) return <p>Завантаження…</p>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Doors</h2>
+        <h2 className="text-xl font-semibold">Двері</h2>
         <DoorForm categoryId={categoryId as any} categorySlug={categorySlug} defaultCollectionId={defaultCollectionId ?? undefined} />
       </div>
 
@@ -69,7 +69,7 @@ export default function DoorTable({ categoryId, categorySlug, collectionSlug, de
                 onClick={() => deleteMutation.mutate(door.id)}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                {deleteMutation.isPending ? "Видалення..." : "Видалити"}
               </Button>
             </div>
           </Card>

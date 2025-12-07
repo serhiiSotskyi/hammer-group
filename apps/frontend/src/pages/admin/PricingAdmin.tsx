@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_ORIGIN } from '@/services/api';
+import { API_ORIGIN, getAdminToken } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
@@ -20,9 +20,12 @@ async function fetchSchema() {
 }
 
 async function merge(payload: any) {
+  const token = getAdminToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_ORIGIN}/api/admin/schema/interior/merge`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -79,25 +82,25 @@ export default function PricingAdmin() {
   };
 
   // Render states after hooks to keep order consistent
-  if (schema.isLoading) return <p>Loading…</p>;
-  if (schema.error) return <p className="text-red-600">Failed to load</p>;
+  if (schema.isLoading) return <p>Завантаження…</p>;
+  if (schema.error) return <p className="text-red-600">Не вдалося завантажити</p>;
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Pricing (Interior)</h1>
-        <span className="text-sm text-muted-foreground">Changes apply immediately</span>
+        <h1 className="text-3xl font-bold">Ціноутворення (Міжкімнатні)</h1>
+        <span className="text-sm text-muted-foreground">Зміни застосовуються одразу</span>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Display Multiplier</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Коефіцієнт відображення</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-sm block mb-1">Current</label>
+            <label className="text-sm block mb-1">Поточне значення</label>
             <Input value={String((schema.data?.schema?.displayMultiplier ?? 1).toFixed ? (schema.data?.schema?.displayMultiplier as any) : schema.data?.schema?.displayMultiplier ?? 1)} readOnly />
           </div>
           <div>
-            <label className="text-sm block mb-1">Set new multiplier (e.g., 1.25)</label>
+            <label className="text-sm block mb-1">Встановити нове значення (наприклад, 1.25)</label>
             <Input placeholder="1.30" onBlur={(e) => {
               const m = Number(e.target.value);
               if (!Number.isFinite(m) || m <= 0) return;
@@ -109,37 +112,7 @@ export default function PricingAdmin() {
 
       {/* Removed old Door Block editor (not used in new customizer) */}
 
-      <Card>
-        <CardHeader><CardTitle>Casings</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="text-sm block mb-1">Front Overlay cost (USD)</label>
-            <Input defaultValue={getOptionAmountUSD('casings','casingFront','overlay')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'casings', controlId: 'casingFront', optionId: 'overlay', costUSD: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label className="text-sm block mb-1">Front Telescopic cost (USD)</label>
-            <Input defaultValue={getOptionAmountUSD('casings','casingFront','telescopic')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'casings', controlId: 'casingFront', optionId: 'telescopic', costUSD: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label className="text-sm block mb-1">Inner Overlay cost (USD)</label>
-            <Input defaultValue={getOptionAmountUSD('casings','casingInner','overlay')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'casings', controlId: 'casingInner', optionId: 'overlay', costUSD: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label className="text-sm block mb-1">Inner Telescopic cost (USD)</label>
-            <Input defaultValue={getOptionAmountUSD('casings','casingInner','telescopic')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'casings', controlId: 'casingInner', optionId: 'telescopic', costUSD: Number(e.target.value) })} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Finish coat</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm block mb-1">Standard Plus cost (USD)</label>
-            <Input defaultValue={getOptionAmountUSD('finishCoat','finishCoat','standardPlus')} onBlur={(e) => upsert.mutate({ action: 'upsertOption', groupId: 'finishCoat', controlId: 'finishCoat', optionId: 'standardPlus', costUSD: Number(e.target.value) })} />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Removed legacy English Casings and 'Finish coat: Standard Plus' section */}
 
       <Card>
         <CardHeader><CardTitle>Lock (Замок)</CardTitle></CardHeader>
@@ -209,42 +182,42 @@ export default function PricingAdmin() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Depth increment</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Надбавка за глибину</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm block mb-1">Price per +10mm (USD)</label>
+            <label className="text-sm block mb-1">Ціна за +10 мм (USD)</label>
             <Input defaultValue={getRateUSDPer10()} onBlur={(e) => upsert.mutate({ action: 'updateRange', groupId: 'sizes', controlId: 'depthMm', rateUSDPer10: Number(e.target.value) })} />
           </div>
-          <div className="text-sm text-muted-foreground self-end">Base depth is 100mm; pricing applies for each +10mm over base.</div>
+          <div className="text-sm text-muted-foreground self-end">Базова глибина — 100 мм; ціна застосовується за кожні +10 мм понад базу.</div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Hinges</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Петлі</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="text-sm block mb-1">Per hinge (≤2100) · Звичайні (USD)</label>
+            <label className="text-sm block mb-1">За петлю (≤2100) · Звичайні (USD)</label>
             {(() => { const v = getTierUSD('hinges','hingeType','standard','below'); return (
               <Input key={`hinge-std-below-${v}`} defaultValue={v}
                 onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'hinges', controlId: 'hingeType', optionId: 'standard', controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(e.target.value), aboveUSD: Number(getTierUSD('hinges','hingeType','standard','above')) })} />
             ); })()}
           </div>
           <div>
-            <label className="text-sm block mb-1">Per hinge (&gt;2100) · Звичайні (USD)</label>
+            <label className="text-sm block mb-1">За петлю (&gt;2100) · Звичайні (USD)</label>
             {(() => { const v = getTierUSD('hinges','hingeType','standard','above'); return (
               <Input key={`hinge-std-above-${v}`} defaultValue={v}
                 onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'hinges', controlId: 'hingeType', optionId: 'standard', controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(getTierUSD('hinges','hingeType','standard','below')), aboveUSD: Number(e.target.value) })} />
             ); })()}
           </div>
           <div>
-            <label className="text-sm block mb-1">Per hinge (≤2100) · Приховані (USD)</label>
+            <label className="text-sm block mb-1">За петлю (≤2100) · Приховані (USD)</label>
             {(() => { const v = getTierUSD('hinges','hingeType','hidden','below'); return (
               <Input key={`hinge-hid-below-${v}`} defaultValue={v}
                 onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'hinges', controlId: 'hingeType', optionId: 'hidden', controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(e.target.value), aboveUSD: Number(getTierUSD('hinges','hingeType','hidden','above')) })} />
             ); })()}
           </div>
           <div>
-            <label className="text-sm block mb-1">Per hinge (&gt;2100) · Приховані (USD)</label>
+            <label className="text-sm block mb-1">За петлю (&gt;2100) · Приховані (USD)</label>
             {(() => { const v = getTierUSD('hinges','hingeType','hidden','above'); return (
               <Input key={`hinge-hid-above-${v}`} defaultValue={v}
                 onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'hinges', controlId: 'hingeType', optionId: 'hidden', controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(getTierUSD('hinges','hingeType','hidden','below')), aboveUSD: Number(e.target.value) })} />
@@ -254,33 +227,33 @@ export default function PricingAdmin() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Opening (Inside options)</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Відкривання (всередину)</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm block mb-1">Left Inside ≤2100 (USD)</label>
+            <label className="text-sm block mb-1">Ліве всередину ≤2100 (USD)</label>
             <Input defaultValue={getTierUSD('opening','opening','leftInside','below')} onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'opening', controlId: 'opening', optionId: 'leftInside', controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(e.target.value), aboveUSD: Number(getTierUSD('opening','opening','leftInside','above')) })} />
           </div>
           <div>
-            <label className="text-sm block mb-1">Left Inside &gt;2100 (USD)</label>
+            <label className="text-sm block mb-1">Ліве всередину &gt;2100 (USD)</label>
             <Input defaultValue={getTierUSD('opening','opening','leftInside','above')} onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'opening', controlId: 'opening', optionId: 'leftInside', controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(getTierUSD('opening','opening','leftInside','below')), aboveUSD: Number(e.target.value) })} />
           </div>
           <div>
-            <label className="text-sm block mb-1">Right Inside ≤2100 (USD)</label>
+            <label className="text-sm block mb-1">Праве всередину ≤2100 (USD)</label>
             <Input defaultValue={getTierUSD('opening','opening','rightInside','below')} onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'opening', controlId: 'opening', optionId: 'rightInside', controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(e.target.value), aboveUSD: Number(getTierUSD('opening','opening','rightInside','above')) })} />
           </div>
           <div>
-            <label className="text-sm block mb-1">Right Inside &gt;2100 (USD)</label>
+            <label className="text-sm block mb-1">Праве всередину &gt;2100 (USD)</label>
             <Input defaultValue={getTierUSD('opening','opening','rightInside','above')} onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'opening', controlId: 'opening', optionId: 'rightInside', controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(getTierUSD('opening','opening','rightInside','below')), aboveUSD: Number(e.target.value) })} />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Frame (Короб)</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Короб</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {['standard','complanar','inside'].map((opt) => (
             <div key={opt}>
-              <label className="text-sm block mb-1">{opt} (USD)</label>
+              <label className="text-sm block mb-1">{{standard:'Стандарт', complanar:'Компланарний', inside:'Inside'}[opt as 'standard'|'complanar'|'inside'] || opt} (USD)</label>
               <Input defaultValue={getTierUSD('frame','frameType',opt,'below')} onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'frame', controlId: 'frameType', optionId: opt, controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(e.target.value), aboveUSD: Number(getTierUSD('frame','frameType',opt,'above')) })} />
             </div>
           ))}

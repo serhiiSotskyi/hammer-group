@@ -7,7 +7,7 @@ export default function FurniturePortfolioAdminPage() {
       <br />
       <br />
       <br />
-      <h1 className="text-3xl font-bold mb-6">Furniture Portfolio</h1>
+      <h1 className="text-3xl font-bold mb-6">Портфоліо меблів</h1>
       <FurniturePortfolioAdmin />
     </div>
   );

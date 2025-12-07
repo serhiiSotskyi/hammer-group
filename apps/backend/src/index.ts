@@ -309,6 +309,9 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
           sizes.controls.push(c);
         } else {
           // For concealed, enforce the agreed bounds/defaults explicitly
+          // Always coerce to a numeric range control
+          c.type = 'range';
+          c.label = c.label || id;
           c.min = min; c.max = max; c.step = 10; c.defaultValue = def; c.unit = 'mm';
         }
       };
@@ -335,25 +338,51 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       };
       hingeOpt('3', '3'); hingeOpt('4', '4'); hingeOpt('5', '5');
 
+      // Ensure install group exists (Під штукатурку / Під панелі)
+      let install = schema.groups?.find((g: any) => g.id === 'install');
+      if (!install) { install = { id: 'install', label: 'Installation', controls: [] }; schema.groups.push(install); }
+      let installType = install.controls.find((c: any) => c.id === 'installType');
+      if (!installType) {
+        installType = { id: 'installType', type: 'radio', label: 'Тип монтажу', required: true, defaultValue: 'flushPlaster', options: [
+          { id: 'flushPlaster', label: 'Під штукатурку', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'flushPanels', label: 'Під панелі', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ] };
+        install.controls.push(installType);
+      }
+
+      // Ensure opening group exists
+      let opening = schema.groups?.find((g: any) => g.id === 'opening');
+      if (!opening) { opening = { id: 'opening', label: 'Сторона відкривання', controls: [] }; schema.groups.push(opening); }
+      let openingCtrl = opening.controls.find((c: any) => c.id === 'opening');
+      if (!openingCtrl) {
+        openingCtrl = { id: 'opening', type: 'radio', label: 'Сторона', required: true, defaultValue: 'left', options: [
+          { id: 'left', label: 'Ліве', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'right', label: 'Праве', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'leftInside', label: 'Ліве inside', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'rightInside', label: 'Праве inside', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ] };
+        opening.controls.push(openingCtrl);
+      }
+
+      // Ensure edge group exists (visible to user)
+      let edge = schema.groups?.find((g: any) => g.id === 'edge');
+      if (!edge) { edge = { id: 'edge', label: 'Торець', controls: [] }; schema.groups.push(edge); }
+      let edgeColor = edge.controls.find((c: any) => c.id === 'edgeColor');
+      if (!edgeColor) {
+        edgeColor = { id: 'edgeColor', type: 'select', label: 'Торець', defaultValue: 'black', options: [
+          { id: 'black', label: 'Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'gold', label: 'Золотий', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'silver', label: 'Срібний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ] };
+        edge.controls.push(edgeColor);
+      }
+
       // Remove profile/markup group from effective schema (pricing handled elsewhere)
       if (Array.isArray(schema.groups)) {
         schema.groups = schema.groups.filter((g: any) => g.id !== 'profile' && g.id !== 'finish');
       }
 
-      // Ensure Opening group exists (no pricing impact)
-      let opening = schema.groups?.find((g: any) => g.id === 'opening');
-      if (!opening) {
-        opening = { id: 'opening', label: 'Opening', controls: [] };
-        schema.groups.push(opening);
-      }
-      let openingCtrl = opening.controls.find((c: any) => c.id === 'opening');
-      if (!openingCtrl) {
-        openingCtrl = { id: 'opening', type: 'radio', label: 'Opening', options: [
-          { id: 'standard', label: 'Standard', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'reverse', label: 'Reverse', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-        ], defaultValue: 'standard' };
-        opening.controls.push(openingCtrl);
-      }
+      // Opening already ensured above with direction options
 
       // Limit frame options to Timber/Aluminium only
       const construction = schema.groups?.find((g: any) => g.id === 'construction');
@@ -409,12 +438,13 @@ function filterInterior<T extends { groupId: string; controlId: string }>(lines:
 }
 
 function filterConcealed<T extends { groupId: string; controlId: string }>(lines: T[]): T[] {
-  const allowedGroups = new Set(["sizes", "construction", "hardware", "install", "hinges", "opening"]);
+  const allowedGroups = new Set(["sizes", "construction", "hardware", "install", "hinges", "opening", "edge"]);
   const allowedControls = new Set([
     'heightMm',
     'frame',
     'magneticLock','magneticStopper','dropDownThreshold','paintFrameCasing',
-    'installType','hinges','opening'
+    'installType','hinges','opening',
+    'edgeColor',
   ]);
   return (lines || []).filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
 }
@@ -909,10 +939,10 @@ app.post("/api/price", async (req, res) => {
     const fx = await getDailyUsdToUah(prisma);
     const conv = (c: number) => convertCentsUsdToUah(c, fx.rate);
     const { normalizedSelections, ...priced } = result;
-    // Apply optional display multiplier before FX
+    // Apply optional display multiplier to adjustments ONLY (never base)
     const mult = typeof (schema as any).displayMultiplier === 'number' && (schema as any).displayMultiplier > 0 ? (schema as any).displayMultiplier : 1;
     const scale = (v: number) => Math.round(v * mult);
-    const scaledBase = scale(priced.basePriceCents);
+    const scaledBase = priced.basePriceCents; // never multiply base price
     const scaledBreakdown = priced.breakdown.map((b) => ({ ...b, deltaCents: scale(b.deltaCents) }));
     const scaledAdjustments = scaledBreakdown.reduce((sum, b) => sum + b.deltaCents, 0);
     const scaledTotal = scaledBase + scaledAdjustments;
@@ -967,14 +997,64 @@ app.post("/api/quotes", async (req, res) => {
       const sizes = (schemaJson as any).groups?.find((g: any) => g.id === 'sizes');
       const h = sizes?.controls?.find((c: any) => c.id === 'heightMm');
       if (h) { h.max = 2100; if (h.defaultValue > 2100) h.defaultValue = 2100; }
+      // Enforce Budget-specific restrictions
+      // 1) Frame only wood
+      const construction = (schemaJson as any).groups?.find((g: any) => g.id === 'construction');
+      const frame = construction?.controls?.find((c: any) => c.id === 'frame');
+      if (frame && Array.isArray(frame.options)) {
+        frame.options = frame.options.filter((o: any) => o.id === 'wood');
+        frame.defaultValue = 'wood';
+      }
+      // 2) Install type only flushPlaster
+      const install = (schemaJson as any).groups?.find((g: any) => g.id === 'install');
+      const installType = install?.controls?.find((c: any) => c.id === 'installType');
+      if (installType && Array.isArray(installType.options)) {
+        installType.options = installType.options.filter((o: any) => o.id === 'flushPlaster');
+        installType.defaultValue = 'flushPlaster';
+      }
+      // 3) Hinges options 2/3/4 of type A (price totals configurable via admin)
+      let hingesGroup = (schemaJson as any).groups?.find((g: any) => g.id === 'hinges');
+      if (!hingesGroup) { hingesGroup = { id: 'hinges', label: 'Петлі', controls: [] }; (schemaJson as any).groups.push(hingesGroup); }
+      let hingesCtrl2 = hingesGroup.controls.find((c: any) => c.id === 'hinges');
+      if (!hingesCtrl2) {
+        hingesCtrl2 = { id: 'hinges', type: 'select', label: 'Петлі', defaultValue: '3', options: [
+          { id: '2', label: '2A', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: '3', label: '3A', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: '4', label: '4A', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ] };
+        hingesGroup.controls.push(hingesCtrl2);
+      } else {
+        hingesCtrl2.type = 'select';
+        const allowed = new Set(['2','3','4']);
+        hingesCtrl2.options = (Array.isArray(hingesCtrl2.options) ? hingesCtrl2.options : []).filter((o: any) => allowed.has(o.id));
+        // Ensure presence with A labels
+        ['2','3','4'].forEach((id) => { if (!hingesCtrl2.options.find((o: any) => o.id === id)) hingesCtrl2.options.push({ id, label: `${id}A`, priceStrategy: { type: 'FIXED', amountCents: 0 } }); });
+        // Normalize labels to include A suffix
+        hingesCtrl2.options = hingesCtrl2.options.map((o: any) => ({ ...o, label: `${o.id}A` }));
+        if (!hingesCtrl2.defaultValue || !allowed.has(hingesCtrl2.defaultValue)) hingesCtrl2.defaultValue = '3';
+      }
+      // 4) Edge colors Black/Gold/Silver
+      let edgeGroup = (schemaJson as any).groups?.find((g: any) => g.id === 'edge');
+      if (!edgeGroup) { edgeGroup = { id: 'edge', label: 'Торець', controls: [] }; (schemaJson as any).groups.push(edgeGroup); }
+      let edgeCtrl = edgeGroup.controls.find((c: any) => c.id === 'edgeColor');
+      if (!edgeCtrl) {
+        edgeCtrl = { id: 'edgeColor', type: 'select', label: 'Торець', defaultValue: 'black', options: [
+          { id: 'black', label: 'Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'gold', label: 'Золотий', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'silver', label: 'Срібний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        ] };
+        edgeGroup.controls.push(edgeCtrl);
+      }
+      // 5) Mark as budget to disable opening surcharges
+      (schemaJson as any).budget = true;
     }
     const priced = priceQuote(product.basePriceCents, schemaJson, selections ?? {});
     const fx = await getDailyUsdToUah(prisma);
     const conv = (c: number) => convertCentsUsdToUah(c, fx.rate);
-    // Apply optional display multiplier before FX
+    // Apply optional display multiplier to adjustments ONLY (never base)
     const mult = typeof (schemaJson as any).displayMultiplier === 'number' && (schemaJson as any).displayMultiplier > 0 ? (schemaJson as any).displayMultiplier : 1;
     const scale = (v: number) => Math.round(v * mult);
-    const scaledBase = scale(priced.basePriceCents);
+    const scaledBase = priced.basePriceCents; // never multiply base price
     const scaledBreakdown = priced.breakdown.map((b) => ({ ...b, deltaCents: scale(b.deltaCents) }));
     const scaledAdjustments = scaledBreakdown.reduce((sum, b) => sum + b.deltaCents, 0);
     const scaledTotal = scaledBase + scaledAdjustments;
@@ -1537,6 +1617,36 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
   const MARKUP = typeof markup === 'number' && markup > 0 ? Number(markup) : 1.3;
 
   try {
+    // Helpers: robust numeric parsing and validation (supports decimal commas like "12,5")
+    const parseNumber = (val: any): number | undefined => {
+      if (typeof val === 'number') return Number.isFinite(val) ? val : undefined;
+      if (typeof val === 'string') {
+        const s = val.trim().replace(',', '.');
+        if (!s) return undefined;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : undefined;
+      }
+      return undefined;
+    };
+    const requireId = (name: string, v: any) => {
+      if (typeof v !== 'string' || v.trim().length === 0) {
+        res.status(400).json({ error: `${name} required` });
+        return false;
+      }
+      return true;
+    };
+
+    // Validate base requirements by action
+    if (!requireId('action', action)) return;
+    const requireGC = () => requireId('groupId', groupId) && requireId('controlId', controlId);
+    const noGroupControl = new Set(['setDisplayMultiplier','setOpeningInsideSurcharge','setHingeUnitPrices','setHeightSurcharges']);
+    const needsGroupControl = (act: string) => !noGroupControl.has(act);
+    if (action === 'upsertOption' || action === 'upsertOptionTiered' || action === 'updateRange' || noGroupControl.has(action)) {
+      if (needsGroupControl(action) && !requireGC()) return;
+    } else {
+      return res.status(400).json({ error: 'Unsupported action' });
+    }
+
     const category = await prisma.category.findUnique({ where: { slug }, include: { activeSchema: true } });
     if (!category) return res.status(404).json({ error: 'Category not found' });
 
@@ -1562,26 +1672,59 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
 
     // Special action: set display multiplier at schema root
     if (action === 'setDisplayMultiplier') {
-      const m = Number(req.body?.multiplier);
-      if (!Number.isFinite(m) || m <= 0) return res.status(400).json({ error: 'Valid multiplier required' });
+      const m = parseNumber(req.body?.multiplier);
+      if (!Number.isFinite(m!) || (m as number) <= 0) return res.status(400).json({ error: 'Valid multiplier required' });
       schema.displayMultiplier = m;
+      // persists via update below
+    } else if (action === 'setOpeningInsideSurcharge') {
+      const woodUSD = parseNumber(req.body?.woodUSD);
+      const aluminiumUSD = parseNumber(req.body?.aluminiumUSD);
+      if (!Number.isFinite(woodUSD as number) || !Number.isFinite(aluminiumUSD as number)) return res.status(400).json({ error: 'woodUSD and aluminiumUSD required (numbers)' });
+      const wood = Math.round((woodUSD as number) * MARKUP * 100);
+      const aluminium = Math.round((aluminiumUSD as number) * MARKUP * 100);
+      schema.openingInsideSurcharge = { wood, aluminium };
+    } else if (action === 'setHingeUnitPrices') {
+      const AUSD = parseNumber(req.body?.AUSD);
+      const BUSD = parseNumber(req.body?.BUSD);
+      if (!Number.isFinite(AUSD as number) || !Number.isFinite(BUSD as number)) return res.status(400).json({ error: 'AUSD and BUSD required (numbers)' });
+      const A = Math.round((AUSD as number) * MARKUP * 100);
+      const B = Math.round((BUSD as number) * MARKUP * 100);
+      schema.hingeUnitPrices = { A, B };
+    } else if (action === 'setHeightSurcharges') {
+      const over2100USD = parseNumber(req.body?.over2100USD);
+      const over2300USD = parseNumber(req.body?.over2300USD);
+      if (!Number.isFinite(over2100USD as number) || !Number.isFinite(over2300USD as number)) return res.status(400).json({ error: 'over2100USD and over2300USD required (numbers)' });
+      const over2100 = Math.round((over2100USD as number) * MARKUP * 100);
+      const over2300 = Math.round((over2300USD as number) * MARKUP * 100);
+      schema.heightSurcharges = { over2100, over2300 };
     }
 
-    // Locate group/control (for control/option actions)
-    let group = schema.groups.find((g: any) => g.id === groupId);
-    if (!group) {
-      group = { id: groupId, label: groupId, controls: [] };
-      schema.groups.push(group);
-    }
-    let control = group.controls.find((c: any) => c.id === controlId);
-    if (!control) {
-      control = { id: controlId, type: 'radio', label: controlId, options: [] };
-      group.controls.push(control);
+    // Locate group/control only for actions that modify a specific control/option
+    let group: any = undefined;
+    let control: any = undefined;
+    if (needsGroupControl(action)) {
+      group = schema.groups.find((g: any) => g.id === groupId);
+      if (!group) {
+        if (typeof groupId !== 'string' || !groupId.trim()) return res.status(400).json({ error: 'groupId required' });
+        group = { id: groupId, label: groupId, controls: [] };
+        schema.groups.push(group);
+      }
+      control = group.controls.find((c: any) => c.id === controlId);
+      if (!control) {
+        if (typeof controlId !== 'string' || !controlId.trim()) return res.status(400).json({ error: 'controlId required' });
+        control = { id: controlId, type: 'radio', label: controlId, options: [] };
+        group.controls.push(control);
+      }
     }
 
+    const amountCentsNum = parseNumber(amountCents);
+    const costUSDNum = parseNumber(costUSD);
+    const rateCentsNum = parseNumber(rateCents);
+    const rateUSDPer10Num = parseNumber(rateUSDPer10);
+    const thresholdNum = parseNumber(threshold);
     const computeAmount = () => {
-      if (typeof amountCents === 'number') return Math.round(amountCents);
-      if (typeof costUSD === 'number') return Math.round(costUSD * MARKUP * 100);
+      if (Number.isFinite(amountCentsNum as number)) return Math.round(amountCentsNum as number);
+      if (Number.isFinite(costUSDNum as number)) return Math.round((costUSDNum as number) * MARKUP * 100);
       return undefined;
     };
 
@@ -1591,7 +1734,7 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
       let opt = optList.find((o: any) => o.id === optionId);
       if (!opt) { opt = { id: optionId, label: optionId }; optList.push(opt); }
       const amt = computeAmount();
-      if (amt === undefined) return res.status(400).json({ error: 'Provide amountCents or costUSD' });
+      if (!Number.isFinite(amt as number)) return res.status(400).json({ error: 'Provide amountCents or costUSD (number)' });
       opt.priceStrategy = { type: 'FIXED', amountCents: amt };
       // Ensure a baseline 'standard' option exists for finishCoat if only 'standardPlus' was added
       if (groupId === 'finishCoat' && controlId === 'finishCoat' && optionId === 'standardPlus') {
@@ -1602,9 +1745,9 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
     } else if (action === 'updateRange') {
       // For depthMm we keep select UI but set control-level PER_UNIT strategy
       if (controlId === 'depthMm') {
-        let rc = typeof rateCents === 'number' ? Math.round(rateCents) : undefined;
-        if (rc === undefined && typeof rateUSDPer10 === 'number') rc = Math.round(rateUSDPer10 * MARKUP * 100);
-        if (rc === undefined) return res.status(400).json({ error: 'Provide rateCents or rateUSDPer10' });
+        let rc = Number.isFinite(rateCentsNum as number) ? Math.round(rateCentsNum as number) : undefined;
+        if (rc === undefined && Number.isFinite(rateUSDPer10Num as number)) rc = Math.round((rateUSDPer10Num as number) * MARKUP * 100);
+        if (!Number.isFinite(rc as number)) return res.status(400).json({ error: 'Provide rateCents or rateUSDPer10 (number)' });
         control.type = control.type || 'select';
         control.step = 10;
         // Base default depth for delta is 100mm
@@ -1613,7 +1756,9 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
       } else if (controlId === 'heightMm') {
         // Height threshold bump: set THRESHOLD_FIXED at 2100 by default
         const amt = computeAmount();
-        control.priceStrategy = { type: 'THRESHOLD_FIXED', compare: 'GT', threshold: Number(threshold ?? 2100), amountCents: amt ?? (control.priceStrategy?.amountCents ?? 0) } as any;
+        if (!Number.isFinite(amt as number)) return res.status(400).json({ error: 'Provide amountCents or costUSD (number)' });
+        const thr = Number.isFinite(thresholdNum as number) ? (thresholdNum as number) : 2100;
+        control.priceStrategy = { type: 'THRESHOLD_FIXED', compare: 'GT', threshold: thr, amountCents: amt } as any;
       } else {
         // Other controls not supported via updateRange in Interior
         return res.status(400).json({ error: 'Unsupported control for updateRange' });
@@ -1625,13 +1770,16 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
       let opt = optList.find((o: any) => o.id === optionId);
       if (!opt) { opt = { id: optionId, label: optionId }; optList.push(opt); }
       const refId = typeof (req.body?.controlRefId) === 'string' ? String(req.body.controlRefId) : 'heightMm';
-      const thr = typeof (req.body?.threshold) === 'number' ? Number(req.body.threshold) : 2100;
-      if (typeof req.body?.belowUSD !== 'number' || typeof req.body?.aboveUSD !== 'number') return res.status(400).json({ error: 'belowUSD and aboveUSD required' });
-      const belowCents = Math.round(req.body.belowUSD * MARKUP * 100);
-      const aboveCents = Math.round(req.body.aboveUSD * MARKUP * 100);
+      const thrRaw = parseNumber(req.body?.threshold);
+      const thr = Number.isFinite(thrRaw as number) ? (thrRaw as number) : 2100;
+      const belowUSD = parseNumber(req.body?.belowUSD);
+      const aboveUSD = parseNumber(req.body?.aboveUSD);
+      if (!Number.isFinite(belowUSD as number) || !Number.isFinite(aboveUSD as number)) return res.status(400).json({ error: 'belowUSD and aboveUSD required (numbers)' });
+      const belowCents = Math.round((belowUSD as number) * MARKUP * 100);
+      const aboveCents = Math.round((aboveUSD as number) * MARKUP * 100);
       opt.priceStrategy = { type: 'TIERED_BY_CONTROL', controlId: refId, threshold: thr, belowAmountCents: belowCents, aboveAmountCents: aboveCents };
-    } else if (action === 'setDisplayMultiplier') {
-      // already handled above
+    } else if (action === 'setDisplayMultiplier' || action === 'setOpeningInsideSurcharge' || action === 'setHingeUnitPrices' || action === 'setHeightSurcharges') {
+      // already handled above (root-level schema changes)
     } else {
       return res.status(400).json({ error: 'Unsupported action' });
     }
@@ -1643,7 +1791,8 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
     res.json(updated);
   } catch (error) {
     console.error('schema merge failed', error);
-    res.status(500).json({ error: 'Failed to merge schema' });
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: 'Failed to merge schema', details: message });
   }
 });
 

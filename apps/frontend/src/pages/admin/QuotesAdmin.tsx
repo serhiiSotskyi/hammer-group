@@ -25,22 +25,22 @@ export default function QuotesAdmin() {
       <br />
       <br />
       <br />
-      <h1 className="text-3xl font-bold mb-6">Door Quotes</h1>
+      <h1 className="text-3xl font-bold mb-6">Заявки на двері</h1>
 
-      {isLoading && <p>Loading...</p>}
-      {error && <p className="text-red-500">Failed to load</p>}
+      {isLoading && <p>Завантаження…</p>}
+      {error && <p className="text-red-500">Не вдалося завантажити</p>}
       {!isLoading && !error && (
         <div className="max-w-full overflow-x-auto">
           <table className="w-max min-w-[1100px] text-sm">
             <thead>
               <tr className="text-left border-b">
-                <th className="p-2 whitespace-nowrap">Created</th>
-                <th className="p-2 whitespace-nowrap">Product</th>
-                <th className="p-2 whitespace-nowrap">Customer</th>
-                <th className="p-2 whitespace-nowrap">Total</th>
-                <th className="p-2 whitespace-nowrap">Delivered</th>
-                <th className="p-2 whitespace-nowrap">Admin Notes</th>
-                <th className="p-2 whitespace-nowrap">Actions</th>
+                <th className="p-2 whitespace-nowrap">Створено</th>
+                <th className="p-2 whitespace-nowrap">Товар</th>
+                <th className="p-2 whitespace-nowrap">Клієнт</th>
+                <th className="p-2 whitespace-nowrap">Разом</th>
+                <th className="p-2 whitespace-nowrap">Опрацьовано</th>
+                <th className="p-2 whitespace-nowrap">Нотатки</th>
+                <th className="p-2 whitespace-nowrap">Дії</th>
               </tr>
             </thead>
             <tbody>
@@ -69,11 +69,11 @@ export default function QuotesAdmin() {
                           update.mutate({ id: q.id, payload: { adminNotes: val } });
                         }
                       }}
-                      placeholder="Add note..."
+                      placeholder="Додати нотатку..."
                     />
                   </td>
                   <td className="p-2 whitespace-nowrap">
-                    <Button size="sm" variant="secondary" onClick={() => { setActive(q); setOpen(true); }}>View</Button>
+                    <Button size="sm" variant="secondary" onClick={() => { setActive(q); setOpen(true); }}>Переглянути</Button>
                   </td>
                 </tr>
               ))}
@@ -85,22 +85,22 @@ export default function QuotesAdmin() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Quote Details</DialogTitle>
+            <DialogTitle>Деталі заявки</DialogTitle>
           </DialogHeader>
           {active && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="p-4">
-                  <div className="font-medium mb-2">Customer</div>
+                  <div className="font-medium mb-2">Клієнт</div>
                   <div className="text-sm">{active.customerName}</div>
                   <div className="text-sm">{active.customerEmail}</div>
                   <div className="text-sm">{active.customerPhone}</div>
                 </Card>
                 <Card className="p-4">
-                  <div className="font-medium mb-2">Totals</div>
-                  <div className="text-sm">Base: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.basePriceCents / 100)}</div>
-                  <div className="text-sm">Adjustments: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.adjustmentsCents / 100)}</div>
-                  <div className="text-sm font-medium">Total: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.totalPriceCents / 100)}</div>
+                  <div className="font-medium mb-2">Підсумки</div>
+                  <div className="text-sm">База: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.basePriceCents / 100)}</div>
+                  <div className="text-sm">Надбавки: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.adjustmentsCents / 100)}</div>
+                  <div className="text-sm font-medium">Разом: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.totalPriceCents / 100)}</div>
                 </Card>
               </div>
               {/* Selections */}
@@ -112,25 +112,25 @@ export default function QuotesAdmin() {
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card className="p-4">
-                      <div className="font-medium mb-2">Selections</div>
+                      <div className="font-medium mb-2">Вибір</div>
                       <div className="space-y-1 text-sm">
                         {selections?.map((s, idx) => (
                           <div key={idx} className="flex justify-between gap-4">
                             <span>{s.groupLabel} · {s.controlLabel}</span>
                             <span className="text-muted-foreground">{s.displayValue}</span>
                           </div>
-                        )) || <div className="text-muted-foreground">Not available</div>}
+                        )) || <div className="text-muted-foreground">Немає даних</div>}
                       </div>
                     </Card>
                     <Card className="p-4">
-                      <div className="font-medium mb-2">Price breakdown</div>
+                      <div className="font-medium mb-2">Структура ціни</div>
                       <div className="space-y-1 text-sm">
                         {breakdown?.map((b, idx) => (
                           <div key={idx} className="flex justify-between gap-4">
                             <span>{b.controlLabel}</span>
                             <span>{new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(b.deltaCents / 100)}</span>
                           </div>
-                        )) || <div className="text-muted-foreground">Not available</div>}
+                        )) || <div className="text-muted-foreground">Немає даних</div>}
                       </div>
                     </Card>
                   </div>

@@ -50,13 +50,13 @@ export default function InteriorDoorsAdmin() {
       <br />
       <br />
       <br />
-      <h1 className="text-3xl font-bold mb-6">Manage Interior Doors</h1>
-      {isLoading && <p>Loading...</p>}
-      {!isLoading && !interior && <p className="text-sm text-muted-foreground">Interior category not found.</p>}
+      <h1 className="text-3xl font-bold mb-6">Керування міжкімнатними дверима</h1>
+      {isLoading && <p>Завантаження…</p>}
+      {!isLoading && !interior && <p className="text-sm text-muted-foreground">Категорію «Міжкімнатні» не знайдено.</p>}
 
       {interior && (
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Collections</h2>
+          <h2 className="text-xl font-semibold">Колекції</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {collections.data?.map((c) => (
               <Card key={c.id} className="p-0 overflow-hidden">
@@ -79,15 +79,15 @@ export default function InteriorDoorsAdmin() {
                         <Button variant="outline" size="sm">•••</Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEdit({ id: c.id, name: c.name, slug: c.slug, imageUrl: c.imageUrl })}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => { const ok = window.confirm('Are you sure? This will erase ALL doors in this collection.'); if (ok) remove.mutate(c.id); }}>Delete</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEdit({ id: c.id, name: c.name, slug: c.slug, imageUrl: c.imageUrl })}>Редагувати</DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => { const ok = window.confirm('Ви впевнені? Це видалить УСІ двері в цій колекції.'); if (ok) remove.mutate(c.id); }}>Видалити</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>
               </Card>
             ))}
-            {collections.isLoading && <p>Loading collections…</p>}
+            {collections.isLoading && <p>Завантаження колекцій…</p>}
           </div>
 
           <form
@@ -104,11 +104,11 @@ export default function InteriorDoorsAdmin() {
               setAddImageUrl(null);
             }}
           >
-            <h3 className="font-semibold">Add Collection</h3>
-            <Input name="name" placeholder="Name (e.g., Classic)" />
-            <Input name="slug" placeholder="Slug (e.g., classic)" />
+            <h3 className="font-semibold">Додати колекцію</h3>
+            <Input name="name" placeholder="Назва (напр., Classic)" />
+            <Input name="slug" placeholder="Слаг (напр., classic)" />
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Image</label>
+              <label className="text-sm text-muted-foreground">Зображення</label>
               {addImageUrl && (
                 <img src={resolveImageUrl(addImageUrl) || ''} className="h-12 w-12 object-cover rounded border" />
               )}
@@ -119,20 +119,20 @@ export default function InteriorDoorsAdmin() {
                 try {
                   const url = await uploadImage(f);
                   setAddImageUrl(url);
-                  toast({ title: 'Image uploaded' });
+                  toast({ title: 'Зображення завантажено' });
                 } catch (err) {
-                  toast({ title: 'Upload failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+                  toast({ title: 'Не вдалося завантажити', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
                 }
               }} />
             </div>
-            <Button type="submit" disabled={add.isPending}>{add.isPending ? 'Adding…' : 'Add Collection'}</Button>
+            <Button type="submit" disabled={add.isPending}>{add.isPending ? 'Додавання…' : 'Додати колекцію'}</Button>
           </form>
 
           {/* Edit dialog */}
           <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Edit Collection</DialogTitle>
+                <DialogTitle>Редагувати колекцію</DialogTitle>
               </DialogHeader>
               {edit && (
                 <form
@@ -147,20 +147,20 @@ export default function InteriorDoorsAdmin() {
                     setEdit(null);
                   }}
                 >
-                  <Input name="name" defaultValue={edit.name} placeholder="Name" />
-                  <Input name="slug" defaultValue={edit.slug} placeholder="Slug" />
+                  <Input name="name" defaultValue={edit.name} placeholder="Назва" />
+                  <Input name="slug" defaultValue={edit.slug} placeholder="Слаг" />
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Image</label>
+                    <label className="text-sm text-muted-foreground">Зображення</label>
                     {edit.imageUrl && <img src={resolveImageUrl(edit.imageUrl) || ''} className="h-12 w-12 object-cover rounded border" />}
                     <Input name="imageUrl" value={edit.imageUrl ?? ''} onChange={(e) => setEdit({ ...edit, imageUrl: e.target.value })} placeholder="/uploads/your-image.jpg" />
                     <input type="file" accept="image/*" onChange={async (e) => {
                       const f = e.currentTarget.files?.[0]; if (!f) return;
-                      try { const url = await uploadImage(f); setEdit({ ...edit, imageUrl: url }); toast({ title: 'Image uploaded' }); } catch(err) { toast({ title: 'Upload failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' }); }
+                      try { const url = await uploadImage(f); setEdit({ ...edit, imageUrl: url }); toast({ title: 'Зображення завантажено' }); } catch(err) { toast({ title: 'Не вдалося завантажити', description: err instanceof Error ? err.message : String(err), variant: 'destructive' }); }
                     }} />
                   </div>
                   <div className="flex gap-2 justify-end">
-                    <Button type="button" variant="outline" onClick={() => setEdit(null)}>Cancel</Button>
-                    <Button type="submit" disabled={editMut.isPending}>{editMut.isPending ? 'Saving…' : 'Save'}</Button>
+                    <Button type="button" variant="outline" onClick={() => setEdit(null)}>Скасувати</Button>
+                    <Button type="submit" disabled={editMut.isPending}>{editMut.isPending ? 'Збереження…' : 'Зберегти'}</Button>
                   </div>
                 </form>
               )}

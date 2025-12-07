@@ -147,7 +147,7 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)}>{door ? "Edit" : "Add Door"}</Button>
+      <Button type="button" onClick={() => setOpen(true)}>{door ? "Редагувати" : "Додати двері"}</Button>
       <Dialog
         open={open}
         onOpenChange={(isOpen) => {
@@ -157,7 +157,7 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{door ? "Edit Door" : "Add Door"}</DialogTitle>
+            <DialogTitle>{door ? "Редагувати двері" : "Додати двері"}</DialogTitle>
           </DialogHeader>
           <form
             onSubmit={(event) => {
@@ -177,11 +177,11 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
                     e.currentTarget.src = "/placeholder.svg";
                   }}
                 />
-                <span className="text-xs text-muted-foreground">Current image</span>
+                <span className="text-xs text-muted-foreground">Поточне зображення</span>
               </div>
             )}
             <div className="space-y-2">
-              <Label>Product image</Label>
+              <Label>Зображення товару</Label>
               <Input
                 type="file"
                 accept="image/*"
@@ -200,12 +200,12 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
                   }
                 }}
               />
-              {uploading && <p className="text-xs text-muted-foreground">Uploading...</p>}
+              {uploading && <p className="text-xs text-muted-foreground">Завантаження...</p>}
               {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
             <Input
               required
-              placeholder="Door name"
+              placeholder="Назва дверей"
               value={form.name}
               onChange={(event) => {
                 const name = event.target.value;
@@ -227,10 +227,10 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
             {/* Collection select for Interior */}
             {categorySlug === 'interior' && !defaultCollectionId && (
               <div className="space-y-2">
-                <Label>Collection</Label>
+                <Label>Колекція</Label>
                 <Select value={form.collectionId ? String(form.collectionId) : ''} onValueChange={(v) => setForm({ ...form, collectionId: Number(v) })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select collection" />
+                    <SelectValue placeholder="Оберіть колекцію" />
                   </SelectTrigger>
                   <SelectContent>
                     {collectionsQuery.data?.map((c: Collection) => (
@@ -243,14 +243,14 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
             {/* Door type for Concealed */}
             {categorySlug === 'concealed' && (
               <div className="space-y-2">
-                <Label>Door type</Label>
+                <Label>Тип дверей</Label>
                 <Select value={form.doorType ?? 'STANDARD'} onValueChange={(v) => setForm({ ...form, doorType: v as any })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder="Оберіть тип" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="STANDARD">Standard</SelectItem>
-                    <SelectItem value="BUDGET">Budget (Universal)</SelectItem>
+                    <SelectItem value="STANDARD">Стандарт</SelectItem>
+                    <SelectItem value="BUDGET">Бюджет (Універсальні)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -260,7 +260,7 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
               type="number"
               step="0.01"
               min="0"
-              placeholder="Base price (GBP)"
+              placeholder="Базова ціна (GBP)"
               value={form.basePriceCents ? (form.basePriceCents / 100).toString() : ""}
               onChange={(event) => {
                 const next = parseFloat(event.target.value);
@@ -272,11 +272,11 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
             />
             {/* Description (used for Concealed types) */}
             <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea rows={3} placeholder="Short description" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <Label>Опис</Label>
+              <Textarea rows={3} placeholder="Короткий опис" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="door-active">Active</Label>
+              <Label htmlFor="door-active">Активний</Label>
               <Switch
                 id="door-active"
                 checked={form.isActive}
@@ -285,7 +285,7 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={mutation.isPending || uploading}>
-              {mutation.isPending ? "Saving..." : uploading ? "Uploading..." : "Save"}
+              {mutation.isPending ? "Збереження..." : uploading ? "Завантаження..." : "Зберегти"}
             </Button>
           </form>
         </DialogContent>

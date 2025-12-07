@@ -12,12 +12,12 @@ export default function ConcealedDoorsAdmin() {
       <br />
       <br />
       <br />
-      <h1 className="text-3xl font-bold mb-6">Manage Concealed Doors</h1>
-      {isLoading && <p>Loading...</p>}
+      <h1 className="text-3xl font-bold mb-6">Керування прихованими дверима</h1>
+      {isLoading && <p>Завантаження…</p>}
       {concealed ? (
         <DoorTable categorySlug={concealed.slug} />
       ) : (
-        !isLoading && <p className="text-sm text-muted-foreground">Concealed category not found.</p>
+        !isLoading && <p className="text-sm text-muted-foreground">Категорію «Приховані» не знайдено.</p>
       )}
     </div>
   );

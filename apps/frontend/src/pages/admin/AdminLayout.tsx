@@ -23,13 +23,13 @@ export default function AdminLayout() {
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside className="w-64 bg-gray-100 p-6">
-        <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
+        <h2 className="text-xl font-bold mb-6">Адмін-панель</h2>
         <nav className="flex flex-col gap-3">
-          <Link to="/admin/interior-doors">Interior Doors</Link>
-          <Link to="/admin/concealed-doors">Concealed Doors</Link>
-          <Link to="/admin/furniture-portfolio">Furniture Portfolio</Link>
+          <Link to="/admin/interior-doors">Міжкімнатні двері</Link>
+          <Link to="/admin/concealed-doors">Приховані двері</Link>
+          <Link to="/admin/furniture-portfolio">Портфоліо меблів</Link>
           <Link to="/admin/furniture-quotes">
-            Furniture Quotes
+            Заявки на меблі
             {stats?.undelivered?.furniture ? (
               <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-600 text-white text-xs px-2 py-0.5">
                 {stats.undelivered.furniture}
@@ -37,7 +37,7 @@ export default function AdminLayout() {
             ) : null}
           </Link>
           <Link to="/admin/quotes">
-            Door Quotes
+            Заявки на двері
             {stats?.undelivered?.doorQuotes ? (
               <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-600 text-white text-xs px-2 py-0.5">
                 {stats.undelivered.doorQuotes}
@@ -45,16 +45,16 @@ export default function AdminLayout() {
             ) : null}
           </Link>
           <Link to="/admin/general-quotes">
-            General Quotes
+            Загальні заявки
             {stats?.undelivered?.general ? (
               <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-600 text-white text-xs px-2 py-0.5">
                 {stats.undelivered.general}
               </span>
             ) : null}
           </Link>
-          <Link to="/admin/currencies">Currencies</Link>
-          <Link to="/admin/pricing">Pricing (Interior)</Link>
-          <Link to="/admin/pricing-concealed">Pricing (Concealed)</Link>
+          <Link to="/admin/currencies">Валюти</Link>
+          <Link to="/admin/pricing">Ціноутворення (Міжкімнатні)</Link>
+          <Link to="/admin/pricing-concealed">Ціноутворення (Приховані)</Link>
         </nav>
         <button
           className="mt-6 text-sm underline"
@@ -63,7 +63,7 @@ export default function AdminLayout() {
             navigate('/admin/login');
           }}
         >
-          Logout
+          Вийти
         </button>
       </aside>
 
