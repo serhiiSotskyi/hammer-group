@@ -43,7 +43,7 @@ const Navigation = () => {
               alt="Hammer Group"
               className="h-8 w-8 md:h-10 md:w-10 object-contain drop-shadow-sm transition-transform duration-200 group-hover:scale-105"
             />
-            <span className="text-2xl font-playfair font-bold text-primary tracking-tight group-hover:text-accent transition-colors">
+            <span className="text-2xl brand-wordmark font-bold text-primary tracking-tight group-hover:text-accent transition-colors">
               Hammer Group
             </span>
           </Link>

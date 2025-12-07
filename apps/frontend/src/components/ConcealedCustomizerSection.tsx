@@ -72,6 +72,8 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
       ...(finishCtrl ? { finishType: finishCtrl.defaultValue ?? finishCtrl.options[0]?.id } : {}),
       // Only set hinges default for Budget doors; for Standard, server derives by height
       ...((product?.doorType === 'BUDGET' && hingesCtrl) ? { hinges: hingesCtrl.defaultValue ?? hingesCtrl.options[0]?.id } : {}),
+      // Explicit flag so server uses Budget path deterministically
+      ...(product?.doorType === 'BUDGET' ? { budget: true } : {}),
       // Edge default (Budget shows this explicitly)
       ...(edgeCtrl ? { edgeColor: edgeCtrl.defaultValue ?? edgeCtrl.options[0]?.id } : {}),
       // Hardware booleans default false
@@ -93,6 +95,15 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
     return product?.doorType === 'BUDGET' ? Math.min(2100, schemaMax) : schemaMax;
   }, [product?.doorType, heightCtrl?.max]);
 
+  // Standard doors: auto-select hinges by height but still show radios (disabled)
+  const autoHingesId = useMemo(() => (heightVal <= 2100 ? '3' : heightVal <= 2300 ? '4' : '5'), [heightVal]);
+  useEffect(() => {
+    if (product?.doorType !== 'BUDGET' && hingesCtrl) {
+      setVal('hinges', autoHingesId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.doorType, autoHingesId, schemaQuery.data?.checksum]);
+
   // Clamp height and hinges on change to avoid server 422; user can always choose MORE hinges than minimum
   useEffect(() => {
     if (!heightCtrl) return;
@@ -103,12 +114,12 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
       setVal('heightMm', clamped);
       return; // hinges will be handled in next run with updated height
     }
-    // Ensure hinges are at least the minimum allowed by height (both Standard and Budget)
-    if (hingesCtrl) {
+    // Standard doors: enforce minimum hinges by height (≤2100→3, ≤2300→4, >2300→5)
+    // Budget doors: do NOT enforce — 2/3/4 are all valid by design
+    if (product?.doorType !== 'BUDGET' && hingesCtrl) {
       const current = sel.hinges ? String(sel.hinges) : undefined;
       const minAllowed = heightVal > 2300 ? '5' : heightVal > 2100 ? '4' : '3';
-      // If no selection yet, or current is below minimum, set to minAllowed. Otherwise keep user's higher choice.
-      if (!current || (current === '3' && minAllowed !== '3') || (current === '4' && minAllowed === '5')) {
+      if (!current || Number(current) < Number(minAllowed)) {
         setVal('hinges', minAllowed);
       }
     }
@@ -191,13 +202,27 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
               <Card>
                 <CardHeader><CardTitle>{t('customizer.priceBreakdown')}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
-                  {price.breakdown
-                    .filter((line) => {
-                      const allowedGroups = new Set(['sizes','construction','install','hardware','hinges','opening']);
-                      const allowedControls = new Set(['heightMm','frame','installType','magneticLock','magneticStopper','dropDownThreshold','paintFrameCasing','hinges','opening']);
-                      return allowedGroups.has(line.groupId) && allowedControls.has(line.controlId);
-                    })
-                    .map((line) => (
+                  {(() => {
+                    const allowedGroups = new Set(['sizes','construction','install','hardware','hinges','opening']);
+                    // Exclude 'paintFrameCasing' from breakdown (not used)
+                    const allowedControls = new Set(['heightMm','frame','installType','magneticLock','magneticStopper','dropDownThreshold','hinges','opening']);
+                    const filtered = price.breakdown.filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
+                    // Merge duplicate controls (e.g., heightMm may appear twice for >2100 and >2300 surcharges)
+                    const merged = new Map<string, typeof filtered[number]>();
+                    for (const l of filtered) {
+                      const key = l.controlId;
+                      const ex = merged.get(key);
+                      if (!ex) {
+                        merged.set(key, { ...l });
+                      } else {
+                        ex.deltaCents += l.deltaCents;
+                        // Prefer most recent display value (shows current selection nicely)
+                        ex.displayValue = l.displayValue;
+                        merged.set(key, ex);
+                      }
+                    }
+                    const display = Array.from(merged.values());
+                    return display.map((line) => (
                     <div key={`${line.groupId}-${line.controlId}-${String(line.selection)}`} className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium">{t(`schema.controls.${line.controlId}`, { defaultValue: line.controlLabel })}</p>
@@ -205,7 +230,8 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                       </div>
                       <span className="text-sm font-medium">{formatCurrency(line.deltaCents, currency, i18n.language)}</span>
                     </div>
-                  ))}
+                    ));
+                  })()}
                 </CardContent>
               </Card>
             ) : null}
@@ -341,29 +367,31 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
               </Card>
             )}
 
-            {/* Hinges: user can select; options below minimum are disabled based on height */}
+            {/* Hinges */}
             {hingesCtrl && (
               <Card>
                 <CardHeader><CardTitle>{t('schema.groups.hinges', { defaultValue: 'Hinges' })}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <Label>{t('schema.controls.hinges', { defaultValue: hingesCtrl.label ?? 'Hinges' })}</Label>
-                  <RadioGroup value={(sel.hinges as string) ?? ''} onValueChange={(v) => setVal('hinges', v)}>
-                    {(() => {
-                      const isBudget = product?.doorType === 'BUDGET';
-                      const ids = isBudget ? ['2','3','4'] : ['3','4','5'];
-                      const mkLabel = (id: string) => isBudget ? `${id}A` : (id === '3' ? '3A' : id === '4' ? '4B' : '5B');
-                      return ids.map((id) => {
-                        const disabled = !isBudget && ((heightVal > 2100 && id === '3') || (heightVal > 2300 && (id === '3' || id === '4')));
-                        const label = mkLabel(id);
-                        return (
-                          <div key={id} className="flex items-center space-x-3">
-                            <RadioGroupItem value={id} id={`hinges-${id}`} disabled={disabled} />
-                            <Label htmlFor={`hinges-${id}`} className={disabled ? 'text-gray-400' : ''}>{label}</Label>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </RadioGroup>
+                  {product?.doorType === 'BUDGET' ? (
+                    <RadioGroup value={String(sel.hinges ?? hingesCtrl.defaultValue ?? '3')} onValueChange={(v) => setVal('hinges', v)}>
+                      {['2','3','4'].map((id) => (
+                        <div key={id} className="flex items-center space-x-3">
+                          <RadioGroupItem value={id} id={`hinges-${id}`} />
+                          <Label htmlFor={`hinges-${id}`}>{`${id}A`}</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  ) : (
+                    <RadioGroup value={autoHingesId} onValueChange={() => {}}>
+                      {['3','4','5'].map((id) => (
+                        <div key={id} className="flex items-center space-x-3">
+                          <RadioGroupItem value={id} id={`hinges-${id}`} disabled />
+                          <Label htmlFor={`hinges-${id}`}>{id === '3' ? '3A' : id === '4' ? '4B' : '5B'} (автовибір)</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  )}
                 </CardContent>
               </Card>
             )}

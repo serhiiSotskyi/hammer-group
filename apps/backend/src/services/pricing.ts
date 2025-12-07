@@ -266,45 +266,24 @@ export function priceQuote(
     const hingesCtrl = hingesGroup?.controls.find((c) => c.id === 'hinges') as SelectControl | undefined;
     const heightVal = normalizedSelections['heightMm'];
     const hasUserHinges = Object.prototype.hasOwnProperty.call(normalizedSelections, 'hinges');
-    if (hingesCtrl && typeof heightVal === 'number' && !hasUserHinges) {
-      // Determine count by height: <=2100 → 3, <=2300 → 4, else 5
+    const isBudget = Boolean((schema as any).budget) || Boolean(normalizedSelections['budget']);
+    // Only auto-select for Standard when not provided by user.
+    if (!isBudget && hingesCtrl && typeof heightVal === 'number' && !hasUserHinges) {
       const count = heightVal <= 2100 ? 3 : heightVal <= 2300 ? 4 : 5;
-      const optId = String(count);
-      const opt = hingesCtrl.options.find((o) => o.id === optId);
-      if (opt) {
-        const deltaCents = calculateDelta(opt.priceStrategy, {
-          schema,
-          productBaseCents,
-          currentTotalCents,
-          normalizedSelections,
-          control: (hingesCtrl as unknown) as Control,
-          group: hingesGroup!,
-          normalizedValue: optId,
-          option: opt,
-        } as any);
-        normalizedSelections['hinges'] = optId;
-        adjustmentsCents += deltaCents;
-        currentTotalCents += deltaCents;
-        breakdown.push({
-          controlId: 'hinges',
-          controlLabel: hingesCtrl.label || 'Hinges',
-          groupId: hingesGroup!.id,
-          groupLabel: hingesGroup!.label,
-          selection: optId,
-          displayValue: `${count}`,
-          strategy: opt.priceStrategy,
-          deltaCents,
-        });
-      }
+      normalizedSelections['hinges'] = String(count);
     }
   } catch {}
 
   // Post-processing: hinges per-unit (concealed standard) via schema.hingeUnitPrices
   try {
     const hup = (schema as any).hingeUnitPrices as { A?: number; B?: number } | undefined;
-    const isBudget = Boolean((schema as any).budget);
+    const isBudget = Boolean((schema as any).budget) || Boolean(normalizedSelections['budget']);
     const heightVal = normalizedSelections['heightMm'];
     if (!isBudget && hup && typeof heightVal === 'number') {
+      // Remove any prior 'hinges' lines (from schema options or earlier passes)
+      for (let i = breakdown.length - 1; i >= 0; i--) {
+        if (breakdown[i]?.controlId === 'hinges') breakdown.splice(i, 1);
+      }
       const count = heightVal <= 2100 ? 3 : heightVal <= 2300 ? 4 : 5;
       const type = count === 3 ? 'A' : 'B';
       const unit = (hup as any)[type] ?? 0;
@@ -329,11 +308,15 @@ export function priceQuote(
   // Post-processing: hinges per-unit (concealed budget) — count is user-selected 2/3/4, unit = A
   try {
     const hup = (schema as any).hingeUnitPrices as { A?: number; B?: number } | undefined;
-    const isBudget = Boolean((schema as any).budget);
+    const isBudget = Boolean((schema as any).budget) || Boolean(normalizedSelections['budget']);
     const hingesGroup = schema.groups.find((g) => g.controls.some((c) => c.id === 'hinges'));
     const hingesCtrl = hingesGroup?.controls.find((c) => c.id === 'hinges') as SelectControl | undefined;
     const sel = normalizedSelections['hinges'];
     if (isBudget && hup && hingesCtrl && typeof sel === 'string') {
+      // Remove any prior 'hinges' lines to avoid duplicates
+      for (let i = breakdown.length - 1; i >= 0; i--) {
+        if (breakdown[i]?.controlId === 'hinges') breakdown.splice(i, 1);
+      }
       const count = Number(sel);
       if (Number.isFinite(count) && count > 0) {
         const unit = hup.A ?? 0;
@@ -460,10 +443,22 @@ function processChoiceControl(
     return { normalizedValue: null, deltaCents: 0, skip: true };
   }
 
-  // Concealed rule: timber (wood) not allowed above 2300 mm
+  // Concealed: if frame=wood and height>2300, auto-coerce to aluminium instead of error
   const h = context.normalizedSelections['heightMm'];
   if (control.id === 'frame' && typeof h === 'number' && h > 2300 && selection === 'wood') {
-    throwValidationError(control, group, 'Timber not available above 2300 mm');
+    const alt = (control as SelectControl).options?.find((o) => o.id === 'aluminium');
+    if (alt) {
+      const deltaCents = calculateDelta(alt.priceStrategy, {
+        ...context,
+        normalizedValue: 'aluminium',
+        option: alt,
+      } as any);
+      return {
+        normalizedValue: 'aluminium',
+        deltaCents,
+        breakdownEntry: buildBreakdownEntry(context, 'aluminium', alt.label, alt.priceStrategy, deltaCents),
+      };
+    }
   }
   // Concealed rule: hinges availability based on height (standard only)
   const isBudgetSchema = Boolean((context.schema as any)?.budget);
@@ -479,6 +474,11 @@ function processChoiceControl(
   const option = control.options.find((opt) => opt.id === selection);
   if (!option) {
     throwValidationError(control, group, "Invalid option selected");
+  }
+
+  // Concealed hinges pricing is handled in post-processing (unit A/B × count).
+  if (control.id === 'hinges') {
+    return { normalizedValue: selection, deltaCents: 0 };
   }
 
   // If both hingeType and hingeCount exist in schema, defer hinge pricing to post-processing

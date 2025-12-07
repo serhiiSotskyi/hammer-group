@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap&subset=latin,cyrillic');
+/* Brand wordmark font (replace this URL with your Google Fonts embed for the desired font family) */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat+Alternates:wght@400;700&display=swap&subset=latin,cyrillic');
 
 @tailwind base;
 @tailwind components;
@@ -71,6 +73,9 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Use this variable to control the header wordmark font ("Hammer Group") */
+    --hg-wordmark-font: 'Montserrat Alternates', system-ui, sans-serif;
   }
 
   .dark {
@@ -131,6 +136,10 @@
 }
 
 @layer components {
+  .brand-wordmark {
+    font-family: var(--hg-wordmark-font);
+    letter-spacing: 0.02em;
+  }
   .hero-text {
     /* Readable hero subheading: solid light text with subtle shadow */
     @apply text-accent-foreground;

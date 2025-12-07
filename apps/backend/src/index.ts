@@ -930,10 +930,14 @@ app.post("/api/price", async (req, res) => {
 
     let schema = normalizeSchema(product.category.slug, schemaRecord.json as any) as unknown as ParamSchemaJSON;
     // Concealed Budget: cap height to 2100
-    if (product.category.slug === 'concealed' && (product as any).doorType === 'BUDGET') {
+    const reqIsBudget = Boolean((selections as any)?.budget);
+    const dbIsBudget = String((product as any)?.doorType || '').toUpperCase() === 'BUDGET';
+    if (product.category.slug === 'concealed' && (dbIsBudget || reqIsBudget)) {
       const sizes = (schema as any).groups?.find((g: any) => g.id === 'sizes');
       const h = sizes?.controls?.find((c: any) => c.id === 'heightMm');
       if (h) { h.max = 2100; if (h.defaultValue > 2100) h.defaultValue = 2100; }
+      // Flag schema so pricing engine uses Budget path reliably
+      (schema as any).budget = true;
     }
     const result = priceQuote(product.basePriceCents, schema, selections ?? {});
     const fx = await getDailyUsdToUah(prisma);
@@ -993,7 +997,9 @@ app.post("/api/quotes", async (req, res) => {
     }
 
     let schemaJson = normalizeSchema(product.category.slug, schemaRecord.json as any) as unknown as ParamSchemaJSON;
-    if (product.category.slug === 'concealed' && (product as any).doorType === 'BUDGET') {
+    const reqIsBudget2 = Boolean((selections as any)?.budget);
+    const dbIsBudget2 = String((product as any)?.doorType || '').toUpperCase() === 'BUDGET';
+    if (product.category.slug === 'concealed' && (dbIsBudget2 || reqIsBudget2)) {
       const sizes = (schemaJson as any).groups?.find((g: any) => g.id === 'sizes');
       const h = sizes?.controls?.find((c: any) => c.id === 'heightMm');
       if (h) { h.max = 2100; if (h.defaultValue > 2100) h.defaultValue = 2100; }
