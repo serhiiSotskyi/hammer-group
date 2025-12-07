@@ -25,12 +25,10 @@ export default function InteriorDoorsPage() {
       <h1 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-6">{t('pages.interiorTitle')}</h1>
       <p className="text-sm sm:text-lg text-gray-700 mb-6 sm:mb-10">{t('pages.interiorBlurb')}</p>
 
-      <div className="flex flex-wrap gap-3 sm:gap-4 lg:gap-6">
+      {/* Mobile: 2 per row; Tablets: 2; Desktop: 5 (≈18% each) */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
         {products?.map((door: ProductResponse) => (
-          <Card
-            key={door.id}
-            className="w-[48vw] min-w-[48vw] max-w-[48vw] sm:w-[48vw] sm:min-w-[48vw] sm:max-w-[48vw] md:w-[18vw] md:min-w-[18vw] md:max-w-[18vw] h-auto overflow-hidden rounded-xl transition hover:shadow-[var(--shadow-hover)] flex flex-col"
-          >
+          <Card key={door.id} className="w-full h-auto overflow-hidden rounded-xl transition hover:shadow-[var(--shadow-hover)] flex flex-col">
             <img
               src={resolveImageUrl(door.imageUrl) || "/placeholder.svg"}
               alt={door.name}

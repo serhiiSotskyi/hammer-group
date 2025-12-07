@@ -15,7 +15,8 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       await authLogin(email, password);
-      navigate('/admin');
+      // Do a full reload to ensure fresh auth cookies and state are visible to protected routes
+      window.location.assign('/admin');
     } catch (e: any) {
       setError('Невірний email або пароль');
     } finally {
