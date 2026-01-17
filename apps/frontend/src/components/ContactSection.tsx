@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import { CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL } from '@/lib/contact';
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -38,7 +39,11 @@ const ContactSection = () => {
 
   const contactInfo = [
     { icon: MapPin, title: t('contact.info.visit'), details: [t('contact.info.city'), t('contact.info.street'), t('contact.info.appointment')] },
-    { icon: Phone, title: t('contact.info.call'), details: [t('contact.info.phone1'), t('contact.info.phone2'), t('contact.info.free')] },
+    { icon: Phone, title: t('contact.info.call'), details: [(
+      <a key="phone" href={`tel:${CONTACT_PHONE_TEL}`} className="hover:text-accent transition-colors">
+        {CONTACT_PHONE_DISPLAY}
+      </a>
+    )] },
     { icon: Mail,  title: t('contact.info.emailUs'), details: [t('contact.info.email'), t('contact.info.quick')] },
     { icon: Clock, title: t('contact.info.hours'), details: [t('contact.info.range')] },
   ];
@@ -117,7 +122,7 @@ const ContactSection = () => {
                       <Input
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                        placeholder={t('contact.info.phone1')}
+                        placeholder={CONTACT_PHONE_DISPLAY}
                       />
                     </div>
                   </div>

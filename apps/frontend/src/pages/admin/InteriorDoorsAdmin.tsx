@@ -106,7 +106,14 @@ export default function InteriorDoorsAdmin() {
           >
             <h3 className="font-semibold">Додати колекцію</h3>
             <Input name="name" placeholder="Назва (напр., Classic)" />
-            <Input name="slug" placeholder="Слаг (напр., classic)" />
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Слаг (URL назва)</label>
+              <Input name="slug" placeholder="classic або modern-doors" />
+              <p className="text-xs text-muted-foreground">
+                Використовується в адресі сторінки (URL). Повинно бути англійською мовою,
+                лише малі літери та дефіси. Наприклад: classic, modern-doors.
+              </p>
+            </div>
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Зображення</label>
               {addImageUrl && (
@@ -148,7 +155,14 @@ export default function InteriorDoorsAdmin() {
                   }}
                 >
                   <Input name="name" defaultValue={edit.name} placeholder="Назва" />
-                  <Input name="slug" defaultValue={edit.slug} placeholder="Слаг" />
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Слаг (URL назва)</label>
+                    <Input name="slug" defaultValue={edit.slug} placeholder="classic або modern-doors" />
+                    <p className="text-xs text-muted-foreground">
+                      Використовується в адресі сторінки (URL). Повинно бути англійською мовою,
+                      лише малі літери та дефіси. Наприклад: classic, modern-doors.
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <label className="text-sm text-muted-foreground">Зображення</label>
                     {edit.imageUrl && <img src={resolveImageUrl(edit.imageUrl) || ''} className="h-12 w-12 object-cover rounded border" />}

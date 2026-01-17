@@ -185,8 +185,8 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardTitle className="flex items-center gap-2"><Eye className="w-5 h-5 text-accent" /> {t('customizer.preview')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-                  <img src={resolveImageUrl(product.imageUrl) || "/placeholder.svg"} alt={product.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/placeholder.svg"; }} />
+                <div className="aspect-[3/4] bg-muted rounded-lg flex items-center justify-center">
+                  <img src={resolveImageUrl(product.imageUrl) || "/placeholder.svg"} alt={product.name} className="w-full h-full object-contain" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/placeholder.svg"; }} />
                 </div>
                 <div className="p-4 bg-primary/5 rounded-lg space-y-3">
                   <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{t('common.basePrice')}</span><span className="font-medium">{formatCurrency(price?.basePriceCents ?? product.basePriceCents, currency, i18n.language)}</span></div>

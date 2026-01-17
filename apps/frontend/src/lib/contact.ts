@@ -1,0 +1,2 @@
+export const CONTACT_PHONE_DISPLAY = "+380 95 004 04 50";
+export const CONTACT_PHONE_TEL = "+380950040450";

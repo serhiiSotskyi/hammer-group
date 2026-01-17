@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Menu, X, Phone, Mail } from "lucide-react";
 import { Link } from "react-router-dom"; // ✅ React Router
 import { useTranslation } from 'react-i18next';
@@ -7,17 +7,8 @@ import { Button } from "@/components/ui/button";
 import logo from "@/assets/HammerB.svg";
 
 const Navigation = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const navItems = [
     { name: t('nav.home'), to: "/" },
@@ -29,11 +20,7 @@ const Navigation = () => {
   ];
 
   return (
-    <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        isScrolled ? "glass-card shadow-[var(--shadow-card)]" : "bg-transparent"
-      }`}
-    >
+    <nav className="fixed top-0 w-full z-50 bg-background shadow-[var(--shadow-card)]">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -64,13 +51,7 @@ const Navigation = () => {
 
           {/* Contact Info & CTA */}
           <div className="hidden lg:flex items-center space-x-4">
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <div className="flex items-center space-x-1">
-                {/* <Phone className="w-4 h-4" />
-                <span>+380 (44) 123-45-67</span> */}
-              </div>
-        
-            </div>
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground" />
             
           </div>
 
@@ -89,7 +70,7 @@ const Navigation = () => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden mt-4 py-4 border-t border-border">
+          <div className="lg:hidden mt-4 py-4 border-t border-border bg-background">
             <div className="flex flex-col space-y-4">
               {navItems.map((item) => (
                 <Link

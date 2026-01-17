@@ -2,6 +2,7 @@ import { Instagram, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL } from '@/lib/contact';
 
 const Footer = () => {
   const scrollToTop = () => {
@@ -81,8 +82,8 @@ const Footer = () => {
               <p>{t('footer.address')}</p>
               <p>{t('footer.city')}</p>
               <p className="pt-2">
-                <a href="tel:+380441234567" className="hover:text-accent transition-colors">
-                  +380 (44) 123-45-67
+                <a href={`tel:${CONTACT_PHONE_TEL}`} className="hover:text-accent transition-colors">
+                  {CONTACT_PHONE_DISPLAY}
                 </a>
               </p>
               <p>

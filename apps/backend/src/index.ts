@@ -30,6 +30,8 @@ if (TRUST_PROXY) {
   app.set('trust proxy', Number.isFinite(hops) ? hops : true);
 }
 const prisma = new PrismaClient();
+const dbUrl = process.env.DATABASE_URL || "";
+const isSqlite = dbUrl.startsWith("file:") || dbUrl.startsWith("sqlite:");
 
 // Security + CORS
 // Support multiple origins via CORS_ORIGINS (comma-separated) or legacy CORS_ORIGIN
@@ -75,6 +77,34 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 app.use("/uploads", express.static(uploadsDir));
+
+async function ensureFurniturePortfolioSchema() {
+  if (!isSqlite) return;
+  try {
+    const rows = await prisma.$queryRaw`PRAGMA table_info('FurniturePortfolio')`;
+    const cols = Array.isArray(rows) ? rows : [];
+    if (cols.length === 0) {
+      await prisma.$executeRaw`CREATE TABLE IF NOT EXISTS "FurniturePortfolio" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "name" TEXT NOT NULL,
+        "imageUrl" TEXT NOT NULL,
+        "albumJson" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`;
+      console.warn("Created missing FurniturePortfolio table");
+      return;
+    }
+    const hasAlbumJson = cols.some((col: any) => col?.name === "albumJson");
+    if (!hasAlbumJson) {
+      await prisma.$executeRaw`ALTER TABLE "FurniturePortfolio" ADD COLUMN "albumJson" TEXT`;
+      console.warn("Added missing FurniturePortfolio.albumJson column");
+    }
+  } catch (error) {
+    console.error("Failed to ensure FurniturePortfolio schema", error);
+  }
+}
+void ensureFurniturePortfolioSchema();
 
 app.get("/", (_req, res) => {
   res.send("Hammer Group API is running 🚀");
@@ -670,7 +700,7 @@ app.delete("/api/admin/collections/:id", authenticate, requireAdmin, async (req,
 });
 
 // Furniture portfolio CRUD
-// Utility: simple album store on filesystem to avoid DB migration churn
+// Persist albums in DB (albumJson). Keep file-store fallback for legacy instances.
 const albumsStorePath = path.join(uploadsDir, 'portfolio_albums.json');
 async function readAlbumsStore(): Promise<Record<string, string[]>> {
   try {
@@ -682,7 +712,7 @@ async function readAlbumsStore(): Promise<Record<string, string[]>> {
   }
 }
 async function writeAlbumsStore(data: Record<string, string[]>) {
-  await fs.promises.writeFile(albumsStorePath, JSON.stringify(data, null, 2), 'utf8');
+  try { await fs.promises.writeFile(albumsStorePath, JSON.stringify(data, null, 2), 'utf8'); } catch {}
 }
 
 app.get("/api/furniture/portfolio", async (_req, res) => {
@@ -691,12 +721,12 @@ app.get("/api/furniture/portfolio", async (_req, res) => {
       prisma.furniturePortfolio.findMany({ orderBy: { createdAt: "desc" } }),
       readAlbumsStore(),
     ]);
-    // Map legacy imageUrl as coverUrl and attach albumUrls from store
+    // Map: prefer DB albumJson; fallback to legacy file-store
     const result = items.map((it: any) => ({
       id: it.id,
       name: it.name,
       coverUrl: it.imageUrl, // legacy field
-      albumUrls: Array.isArray(albums[String(it.id)]) ? albums[String(it.id)] : [],
+      albumUrls: Array.isArray(it.albumJson as any) ? (it.albumJson as any) : (Array.isArray(albums[String(it.id)]) ? albums[String(it.id)] : []),
       createdAt: it.createdAt,
       updatedAt: it.updatedAt,
     }));
@@ -713,8 +743,8 @@ app.post("/api/furniture/portfolio", async (req, res) => {
     const coverUrl = req.body?.coverUrl || req.body?.imageUrl; // backward compat
     const albumUrls = Array.isArray(req.body?.albumUrls) ? req.body.albumUrls as string[] : [];
     if (!name || !coverUrl) return res.status(400).json({ error: "name and coverUrl are required" });
-    const item = await prisma.furniturePortfolio.create({ data: { name: String(name), imageUrl: String(coverUrl) } });
-    // Persist album mapping
+    const item = await prisma.furniturePortfolio.create({ data: { name: String(name), imageUrl: String(coverUrl), albumJson: albumUrls as any } });
+    // Legacy file-store write (best-effort)
     const albums = await readAlbumsStore();
     albums[String(item.id)] = albumUrls;
     await writeAlbumsStore(albums);
@@ -736,14 +766,11 @@ app.put("/api/furniture/portfolio/:id", async (req, res) => {
       data: {
         ...(name !== undefined ? { name: String(name) } : {}),
         ...(coverUrl !== undefined ? { imageUrl: String(coverUrl) } : {}),
+        ...(albumUrls !== undefined ? { albumJson: albumUrls as any } : {}),
       },
     });
-    if (albumUrls) {
-      const albums = await readAlbumsStore();
-      albums[String(id)] = albumUrls;
-      await writeAlbumsStore(albums);
-    }
-    res.json({ id: item.id, name: item.name, coverUrl: item.imageUrl, albumUrls: albumUrls ?? (await readAlbumsStore())[String(id)] ?? [] });
+    if (albumUrls) { const albums = await readAlbumsStore(); albums[String(id)] = albumUrls; await writeAlbumsStore(albums); }
+    res.json({ id: item.id, name: item.name, coverUrl: item.imageUrl, albumUrls: (albumUrls ?? (item.albumJson as any) ?? []) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to update portfolio item" });

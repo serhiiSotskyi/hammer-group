@@ -255,21 +255,27 @@ export default function DoorForm({ categoryId, categorySlug, door, defaultCollec
                 </Select>
               </div>
             )}
-            <Input
-              required
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Базова ціна (GBP)"
-              value={form.basePriceCents ? (form.basePriceCents / 100).toString() : ""}
-              onChange={(event) => {
-                const next = parseFloat(event.target.value);
-                setForm({
-                  ...form,
-                  basePriceCents: Number.isNaN(next) ? 0 : Math.round(next * 100),
-                });
-              }}
-            />
+            <div className="space-y-1">
+              <Label>Базова ціна (USD)</Label>
+              <Input
+                required
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Базова ціна (USD)"
+                value={form.basePriceCents ? (form.basePriceCents / 100).toString() : ""}
+                onChange={(event) => {
+                  const next = parseFloat(event.target.value);
+                  setForm({
+                    ...form,
+                    basePriceCents: Number.isNaN(next) ? 0 : Math.round(next * 100),
+                  });
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Ціна в доларах США (USD). Конвертація для відображення виконується автоматично.
+              </p>
+            </div>
             {/* Description (used for Concealed types) */}
             <div className="space-y-2">
               <Label>Опис</Label>

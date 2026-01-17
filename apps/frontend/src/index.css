@@ -154,9 +154,70 @@
     @apply transition-transform duration-500 hover:scale-[1.02] hover:shadow-[var(--shadow-hover)];
   }
 
+  .door-grid {
+    align-items: stretch;
+  }
+
+  .door-card-root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    overflow: hidden;
+    border-radius: var(--radius);
+    transition: box-shadow 0.3s ease;
+  }
+
   .premium-button {
     @apply bg-[var(--gradient-wood)] text-accent-foreground font-semibold px-8 py-4 rounded-xl;
     @apply transition-all duration-300 hover:scale-105 hover:shadow-[var(--shadow-premium)];
+  }
+
+  .door-card-media {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: hsl(var(--card));
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .door-card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .door-card-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.25rem;
+  }
+
+  .door-card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    gap: 0.25rem;
+  }
+
+  .door-card-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .door-card-description {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .section-reveal {

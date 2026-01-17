@@ -139,6 +139,7 @@ model FurniturePortfolio {
   id        Int      @id @default(autoincrement())
   name      String
   imageUrl  String
+  albumJson Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
