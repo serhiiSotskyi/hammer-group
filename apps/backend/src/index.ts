@@ -33,6 +33,30 @@ const prisma = new PrismaClient();
 const dbUrl = process.env.DATABASE_URL || "";
 const isSqlite = dbUrl.startsWith("file:") || dbUrl.startsWith("sqlite:");
 
+function toSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+async function generateUniqueSlug(
+  source: string,
+  isTaken: (candidate: string) => Promise<boolean>,
+): Promise<string> {
+  const base = toSlug(source) || "item";
+  let candidate = base;
+  let counter = 2;
+  while (await isTaken(candidate)) {
+    candidate = `${base}-${counter}`;
+    counter += 1;
+  }
+  return candidate;
+}
+
 // Security + CORS
 // Support multiple origins via CORS_ORIGINS (comma-separated) or legacy CORS_ORIGIN
 const rawOrigins =
@@ -87,11 +111,13 @@ async function ensureFurniturePortfolioSchema() {
       await prisma.$executeRaw`CREATE TABLE IF NOT EXISTS "FurniturePortfolio" (
         "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         "name" TEXT NOT NULL,
+        "slug" TEXT,
         "imageUrl" TEXT NOT NULL,
         "albumJson" TEXT,
         "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`;
+      await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "FurniturePortfolio_slug_key" ON "FurniturePortfolio"("slug")`;
       console.warn("Created missing FurniturePortfolio table");
       return;
     }
@@ -100,11 +126,46 @@ async function ensureFurniturePortfolioSchema() {
       await prisma.$executeRaw`ALTER TABLE "FurniturePortfolio" ADD COLUMN "albumJson" TEXT`;
       console.warn("Added missing FurniturePortfolio.albumJson column");
     }
+    const hasSlug = cols.some((col: any) => col?.name === "slug");
+    if (!hasSlug) {
+      await prisma.$executeRaw`ALTER TABLE "FurniturePortfolio" ADD COLUMN "slug" TEXT`;
+      console.warn("Added missing FurniturePortfolio.slug column");
+    }
+    await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "FurniturePortfolio_slug_key" ON "FurniturePortfolio"("slug")`;
   } catch (error) {
     console.error("Failed to ensure FurniturePortfolio schema", error);
   }
 }
 void ensureFurniturePortfolioSchema();
+
+async function backfillFurniturePortfolioSlugs() {
+  try {
+    const items = await prisma.furniturePortfolio.findMany({
+      where: {
+        OR: [{ slug: null }, { slug: "" }],
+      },
+      select: { id: true, name: true },
+      orderBy: { id: "asc" },
+    });
+
+    for (const item of items) {
+      const uniqueSlug = await generateUniqueSlug(item.name, async (candidate) => {
+        const existing = await prisma.furniturePortfolio.findFirst({
+          where: { slug: candidate, NOT: { id: item.id } },
+          select: { id: true },
+        });
+        return Boolean(existing);
+      });
+      await prisma.furniturePortfolio.update({
+        where: { id: item.id },
+        data: { slug: uniqueSlug },
+      });
+    }
+  } catch (error) {
+    console.error("Failed to backfill FurniturePortfolio slugs", error);
+  }
+}
+void backfillFurniturePortfolioSlugs();
 
 app.get("/", (_req, res) => {
   res.send("Hammer Group API is running 🚀");
@@ -651,10 +712,19 @@ app.get("/api/collections", async (req, res) => {
 app.post("/api/admin/collections", authenticate, requireAdmin, async (req, res) => {
   try {
     const { categorySlug, name, slug, imageUrl } = req.body ?? {};
-    if (!categorySlug || !name || !slug) return res.status(400).json({ error: "categorySlug, name, slug are required" });
+    if (!categorySlug || !name) return res.status(400).json({ error: "categorySlug and name are required" });
     const category = await prisma.category.findUnique({ where: { slug: String(categorySlug) } });
     if (!category) return res.status(404).json({ error: "Category not found" });
-    const created = await prisma.collection.create({ data: { categoryId: category.id, name: String(name), slug: String(slug), imageUrl: imageUrl ?? null } });
+    const uniqueSlug = await generateUniqueSlug(String(slug ?? name), async (candidate) => {
+      const existing = await prisma.collection.findFirst({
+        where: { categoryId: category.id, slug: candidate },
+        select: { id: true },
+      });
+      return Boolean(existing);
+    });
+    const created = await prisma.collection.create({
+      data: { categoryId: category.id, name: String(name), slug: uniqueSlug, imageUrl: imageUrl ?? null },
+    });
     res.status(201).json(created);
   } catch (error: any) {
     if (error?.code === "P2002") return res.status(409).json({ error: "Collection slug must be unique within category" });
@@ -668,7 +738,29 @@ app.put("/api/admin/collections/:id", authenticate, requireAdmin, async (req, re
   try {
     const id = Number(req.params.id);
     const { name, slug, imageUrl } = req.body ?? {};
-    const updated = await prisma.collection.update({ where: { id }, data: { ...(name !== undefined ? { name: String(name) } : {}), ...(slug !== undefined ? { slug: String(slug) } : {}), ...(imageUrl !== undefined ? { imageUrl: imageUrl ?? null } : {}) } });
+    const current = await prisma.collection.findUnique({ where: { id }, select: { id: true, categoryId: true, name: true } });
+    if (!current) return res.status(404).json({ error: "Collection not found" });
+
+    const nextName = name !== undefined ? String(name) : current.name;
+    let nextSlug: string | undefined;
+    if (slug !== undefined || name !== undefined) {
+      nextSlug = await generateUniqueSlug(String(slug ?? nextName), async (candidate) => {
+        const existing = await prisma.collection.findFirst({
+          where: { categoryId: current.categoryId, slug: candidate, NOT: { id } },
+          select: { id: true },
+        });
+        return Boolean(existing);
+      });
+    }
+
+    const updated = await prisma.collection.update({
+      where: { id },
+      data: {
+        ...(name !== undefined ? { name: nextName } : {}),
+        ...(nextSlug !== undefined ? { slug: nextSlug } : {}),
+        ...(imageUrl !== undefined ? { imageUrl: imageUrl ?? null } : {}),
+      },
+    });
     res.json(updated);
   } catch (error: any) {
     if (error?.code === "P2002") return res.status(409).json({ error: "Collection slug must be unique within category" });
@@ -725,6 +817,7 @@ app.get("/api/furniture/portfolio", async (_req, res) => {
     const result = items.map((it: any) => ({
       id: it.id,
       name: it.name,
+      slug: it.slug ?? `${toSlug(String(it.name ?? "")) || "item"}-${it.id}`,
       coverUrl: it.imageUrl, // legacy field
       albumUrls: Array.isArray(it.albumJson as any) ? (it.albumJson as any) : (Array.isArray(albums[String(it.id)]) ? albums[String(it.id)] : []),
       createdAt: it.createdAt,
@@ -739,16 +832,22 @@ app.get("/api/furniture/portfolio", async (_req, res) => {
 
 app.post("/api/furniture/portfolio", async (req, res) => {
   try {
-    const { name } = req.body ?? {};
+    const { name, slug } = req.body ?? {};
     const coverUrl = req.body?.coverUrl || req.body?.imageUrl; // backward compat
     const albumUrls = Array.isArray(req.body?.albumUrls) ? req.body.albumUrls as string[] : [];
     if (!name || !coverUrl) return res.status(400).json({ error: "name and coverUrl are required" });
-    const item = await prisma.furniturePortfolio.create({ data: { name: String(name), imageUrl: String(coverUrl), albumJson: albumUrls as any } });
+    const uniqueSlug = await generateUniqueSlug(String(slug ?? name), async (candidate) => {
+      const existing = await prisma.furniturePortfolio.findUnique({ where: { slug: candidate }, select: { id: true } });
+      return Boolean(existing);
+    });
+    const item = await prisma.furniturePortfolio.create({
+      data: { name: String(name), slug: uniqueSlug, imageUrl: String(coverUrl), albumJson: albumUrls as any },
+    });
     // Legacy file-store write (best-effort)
     const albums = await readAlbumsStore();
     albums[String(item.id)] = albumUrls;
     await writeAlbumsStore(albums);
-    res.status(201).json({ id: item.id, name: item.name, coverUrl: coverUrl, albumUrls });
+    res.status(201).json({ id: item.id, name: item.name, slug: item.slug, coverUrl: coverUrl, albumUrls });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to create portfolio item" });
@@ -758,19 +857,34 @@ app.post("/api/furniture/portfolio", async (req, res) => {
 app.put("/api/furniture/portfolio/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { name } = req.body ?? {};
+    const { name, slug } = req.body ?? {};
     const coverUrl = (req.body?.coverUrl ?? req.body?.imageUrl) as string | undefined;
     const albumUrls = Array.isArray(req.body?.albumUrls) ? (req.body.albumUrls as string[]) : undefined;
+    const current = await prisma.furniturePortfolio.findUnique({ where: { id }, select: { id: true, name: true } });
+    if (!current) return res.status(404).json({ error: "Portfolio item not found" });
+
+    const nextName = name !== undefined ? String(name) : current.name;
+    let nextSlug: string | undefined;
+    if (slug !== undefined || name !== undefined) {
+      nextSlug = await generateUniqueSlug(String(slug ?? nextName), async (candidate) => {
+        const existing = await prisma.furniturePortfolio.findFirst({
+          where: { slug: candidate, NOT: { id } },
+          select: { id: true },
+        });
+        return Boolean(existing);
+      });
+    }
     const item = await prisma.furniturePortfolio.update({
       where: { id },
       data: {
-        ...(name !== undefined ? { name: String(name) } : {}),
+        ...(name !== undefined ? { name: nextName } : {}),
+        ...(nextSlug !== undefined ? { slug: nextSlug } : {}),
         ...(coverUrl !== undefined ? { imageUrl: String(coverUrl) } : {}),
         ...(albumUrls !== undefined ? { albumJson: albumUrls as any } : {}),
       },
     });
     if (albumUrls) { const albums = await readAlbumsStore(); albums[String(id)] = albumUrls; await writeAlbumsStore(albums); }
-    res.json({ id: item.id, name: item.name, coverUrl: item.imageUrl, albumUrls: (albumUrls ?? (item.albumJson as any) ?? []) });
+    res.json({ id: item.id, name: item.name, slug: item.slug ?? null, coverUrl: item.imageUrl, albumUrls: (albumUrls ?? (item.albumJson as any) ?? []) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to update portfolio item" });
@@ -813,8 +927,8 @@ app.post("/api/products", authenticate, requireAdmin, async (req, res) => {
   try {
     const { name, slug, basePriceCents, imageUrl, categoryId, categorySlug, isActive, description, collectionId, doorType } = req.body ?? {};
 
-    if (!name || !slug || typeof basePriceCents !== "number") {
-      return res.status(400).json({ error: "name, slug, basePriceCents are required" });
+    if (!name || typeof basePriceCents !== "number") {
+      return res.status(400).json({ error: "name and basePriceCents are required" });
     }
 
     let resolvedCategoryId: number | undefined = categoryId ? Number(categoryId) : undefined;
@@ -827,10 +941,15 @@ app.post("/api/products", authenticate, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: "categoryId or categorySlug is required" });
     }
 
+    const uniqueSlug = await generateUniqueSlug(String(slug ?? name), async (candidate) => {
+      const existing = await prisma.product.findUnique({ where: { slug: candidate }, select: { id: true } });
+      return Boolean(existing);
+    });
+
     const product = await prisma.product.create({
       data: {
         name: String(name),
-        slug: String(slug),
+        slug: uniqueSlug,
         basePriceCents: Math.round(basePriceCents),
         imageUrl: imageUrl ?? null,
         categoryId: resolvedCategoryId,
@@ -856,12 +975,23 @@ app.put("/api/products/:id", authenticate, requireAdmin, async (req, res) => {
   try {
     const id = Number(req.params.id);
     const { name, slug, basePriceCents, imageUrl, categoryId, isActive, description, collectionId, doorType } = req.body ?? {};
+    const current = await prisma.product.findUnique({ where: { id }, select: { id: true, name: true } });
+    if (!current) return res.status(404).json({ error: "Product not found" });
+
+    const nextName = name !== undefined ? String(name) : current.name;
+    let nextSlug: string | undefined;
+    if (slug !== undefined || name !== undefined) {
+      nextSlug = await generateUniqueSlug(String(slug ?? nextName), async (candidate) => {
+        const existing = await prisma.product.findFirst({ where: { slug: candidate, NOT: { id } }, select: { id: true } });
+        return Boolean(existing);
+      });
+    }
 
     const product = await prisma.product.update({
       where: { id },
       data: {
-        ...(name !== undefined ? { name: String(name) } : {}),
-        ...(slug !== undefined ? { slug: String(slug) } : {}),
+        ...(name !== undefined ? { name: nextName } : {}),
+        ...(nextSlug !== undefined ? { slug: nextSlug } : {}),
         ...(basePriceCents !== undefined ? { basePriceCents: Math.round(Number(basePriceCents)) } : {}),
         ...(imageUrl !== undefined ? { imageUrl: imageUrl ?? null } : {}),
         ...(categoryId !== undefined ? { categoryId: Number(categoryId) } : {}),
@@ -876,6 +1006,9 @@ app.put("/api/products/:id", authenticate, requireAdmin, async (req, res) => {
   } catch (error: any) {
     if (error?.code === "P2002") {
       return res.status(409).json({ error: "Slug must be unique" });
+    }
+    if (error?.code === "P2025") {
+      return res.status(404).json({ error: "Product not found" });
     }
     console.error(error);
     res.status(500).json({ error: "Failed to update product" });

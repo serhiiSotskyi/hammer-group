@@ -138,6 +138,7 @@ model Inquiry {
 model FurniturePortfolio {
   id        Int      @id @default(autoincrement())
   name      String
+  slug      String?  @unique
   imageUrl  String
   albumJson Json?
   createdAt DateTime @default(now())
