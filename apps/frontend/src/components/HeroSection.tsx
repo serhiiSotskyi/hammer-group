@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, Play, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import heroImage from '@/assets/hero2.png';
 
@@ -46,11 +45,11 @@ const HeroSection = () => {
             <div className="text-white/80">{t('hero.stats.founded')}</div>
           </div>
           <div>
-            <div className="text-4xl font-bold mb-2">5,000+</div>
+          <div className="text-4xl font-bold mb-2">5,000+</div>
             <div className="text-white/80">{t('hero.stats.projects')}</div>
           </div>
           <div>
-            <div className="text-4xl font-bold mb-2">In‑House</div>
+            <div className="text-4xl font-bold mb-2">Власне</div>
             <div className="text-white/80">{t('hero.stats.manufacturing')}</div>
           </div>
         </div>

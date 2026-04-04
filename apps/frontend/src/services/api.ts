@@ -1,7 +1,37 @@
 import { ParamSchemaJSON, PricingBreakdownEntry } from "@/types/paramSchema";
 
-export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || "";
-const API_URL = `${API_ORIGIN}/api`;
+const rawApiOrigin = (import.meta.env.VITE_API_ORIGIN || "").trim().replace(/\/$/, "");
+export const API_ORIGIN = rawApiOrigin;
+const API_URL = rawApiOrigin ? `${rawApiOrigin}/api` : "/api";
+
+async function parseJsonResponse<T>(res: Response, fallbackMessage: string): Promise<T> {
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const message =
+      (body && typeof body === "object" && "error" in body && typeof body.error === "string" && body.error) ||
+      fallbackMessage;
+    throw new Error(message);
+  }
+
+  return (await res.json()) as T;
+}
+
+async function apiFetch<T>(input: string, init: RequestInit = {}, fallbackMessage: string): Promise<T> {
+  try {
+    const res = await fetch(input, init);
+    return await parseJsonResponse<T>(res, fallbackMessage);
+  } catch (error) {
+    if (error instanceof Error) {
+      const networkError = error instanceof TypeError || /failed to fetch/i.test(error.message);
+      if (networkError) {
+        throw new Error(
+          "Cannot reach the backend API. Start `apps/backend` on port 4000 or configure `VITE_API_ORIGIN`.",
+        );
+      }
+    }
+    throw error;
+  }
+}
 
 // Auth token storage (fallback for cross-site cookie restrictions)
 const ADMIN_TOKEN_KEY = 'HG_ADMIN_TOKEN';
@@ -24,6 +54,7 @@ export interface ProductResponse {
   name: string;
   slug: string;
   basePriceCents: number;
+  sortOrder: number;
   imageUrl?: string | null;
   categoryId: number;
   description?: string | null;
@@ -56,17 +87,21 @@ export const getProducts = async (params: Record<string, string | number> = {}) 
     Object.entries(params).map(([key, value]) => [key, String(value)]),
   ).toString();
 
-  const res = await fetch(`${API_URL}/products${query ? `?${query}` : ""}`);
-  if (!res.ok) throw new Error("Failed to fetch products");
-  return (await res.json()) as ProductResponse[];
+  return apiFetch<ProductResponse[]>(
+    `${API_URL}/products${query ? `?${query}` : ""}`,
+    undefined,
+    "Failed to fetch products",
+  );
 };
 
 // Collections
 export type Collection = { id: number; categoryId: number; name: string; slug: string; imageUrl?: string | null };
 export const getCollections = async (categorySlug: string) => {
-  const res = await fetch(`${API_URL}/collections?categorySlug=${encodeURIComponent(categorySlug)}`);
-  if (!res.ok) throw new Error('Failed to fetch collections');
-  return res.json() as Promise<Collection[]>;
+  return apiFetch<Collection[]>(
+    `${API_URL}/collections?categorySlug=${encodeURIComponent(categorySlug)}`,
+    undefined,
+    "Failed to fetch collections",
+  );
 };
 
 export const createCollection = async (categorySlug: string, payload: { name: string; slug: string; imageUrl?: string | null }) => {
@@ -142,6 +177,20 @@ export const updateProduct = async (id: number, product: Partial<ProductResponse
 export const deleteProduct = async (id: number) => {
   const res = await fetch(`${API_URL}/products/${id}`, { method: "DELETE", credentials: 'include' });
   if (!res.ok) throw new Error("Failed to delete product");
+};
+
+export const reorderInteriorDoors = async (items: Array<{ id: number; sortOrder: number }>) => {
+  const res = await fetch(`${API_URL}/interior-doors/reorder`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(items),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error || "Не вдалося зберегти порядок дверей");
+  }
+  return res.json() as Promise<Array<{ id: number; sortOrder: number }>>;
 };
 
 export const getInteriorSchema = async () => {

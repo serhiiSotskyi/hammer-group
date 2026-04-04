@@ -34,6 +34,7 @@ model Product {
   name           String
   slug           String     @unique
   basePriceCents Int
+  sortOrder      Int        @default(0)
   imageUrl       String?
   description    String?
   collectionId   Int?
@@ -43,6 +44,8 @@ model Product {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   quotes         Quote[]
+
+  @@index([categoryId, collectionId, sortOrder])
 }
 
 model Collection {
@@ -123,6 +126,11 @@ enum DoorType {
   BUDGET
 }
 
+enum ProjectCategory {
+  DOORS
+  FURNITURE
+}
+
 model Inquiry {
   id        Int          @id @default(autoincrement())
   type      InquiryType
@@ -136,13 +144,14 @@ model Inquiry {
 }
 
 model FurniturePortfolio {
-  id        Int      @id @default(autoincrement())
-  name      String
-  slug      String?  @unique
-  imageUrl  String
-  albumJson Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int             @id @default(autoincrement())
+  name        String
+  slug        String?         @unique
+  projectType ProjectCategory @default(FURNITURE)
+  imageUrl    String
+  albumJson   Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
 // Cached daily FX rates

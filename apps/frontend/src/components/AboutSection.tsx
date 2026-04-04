@@ -38,11 +38,11 @@ const AboutSection = () => {
                 <div className="text-muted-foreground">{t('about.badges.founded')}</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent mb-2">In‑House</div>
+                <div className="text-4xl font-bold text-accent mb-2">Власне</div>
                 <div className="text-muted-foreground">{t('about.badges.manufacturing')}</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent mb-2">To‑Size</div>
+                <div className="text-4xl font-bold text-accent mb-2">Під розмір</div>
                 <div className="text-muted-foreground">{t('about.badges.tosize')}</div>
               </div>
             </div>

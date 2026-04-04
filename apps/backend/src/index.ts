@@ -4,7 +4,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
-import { Prisma, PrismaClient, SchemaStatus } from "@prisma/client";
+import { Prisma, PrismaClient, SchemaStatus, ProjectCategory } from "@prisma/client";
 import { getDailyUsdToUah, convertCentsUsdToUah } from "./services/fx";
 import dotenv from "dotenv";
 import fs from "fs";
@@ -131,12 +131,34 @@ async function ensureFurniturePortfolioSchema() {
       await prisma.$executeRaw`ALTER TABLE "FurniturePortfolio" ADD COLUMN "slug" TEXT`;
       console.warn("Added missing FurniturePortfolio.slug column");
     }
+    const hasProjectType = cols.some((col: any) => col?.name === "projectType");
+    if (!hasProjectType) {
+      await prisma.$executeRaw`ALTER TABLE "FurniturePortfolio" ADD COLUMN "projectType" TEXT NOT NULL DEFAULT 'FURNITURE'`;
+      console.warn("Added missing FurniturePortfolio.projectType column");
+    }
     await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "FurniturePortfolio_slug_key" ON "FurniturePortfolio"("slug")`;
   } catch (error) {
     console.error("Failed to ensure FurniturePortfolio schema", error);
   }
 }
 void ensureFurniturePortfolioSchema();
+
+async function ensureProductSortOrderSchema() {
+  if (!isSqlite) return;
+  try {
+    const rows = await prisma.$queryRaw`PRAGMA table_info('Product')`;
+    const cols = Array.isArray(rows) ? rows : [];
+    const hasSortOrder = cols.some((col: any) => col?.name === "sortOrder");
+    if (!hasSortOrder) {
+      await prisma.$executeRaw`ALTER TABLE "Product" ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0`;
+      console.warn("Added missing Product.sortOrder column");
+    }
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "Product_categoryId_collectionId_sortOrder_idx" ON "Product"("categoryId", "collectionId", "sortOrder")`;
+  } catch (error) {
+    console.error("Failed to ensure Product.sortOrder schema", error);
+  }
+}
+void ensureProductSortOrderSchema();
 
 async function backfillFurniturePortfolioSlugs() {
   try {
@@ -166,6 +188,41 @@ async function backfillFurniturePortfolioSlugs() {
   }
 }
 void backfillFurniturePortfolioSlugs();
+
+async function backfillProductSortOrders() {
+  try {
+    const rows = await prisma.product.findMany({
+      select: { id: true, categoryId: true, collectionId: true, sortOrder: true },
+      orderBy: [{ categoryId: "asc" }, { collectionId: "asc" }, { id: "asc" }],
+    });
+
+    const counters = new Map<string, number>();
+    for (const row of rows) {
+      const scopeKey = `${row.categoryId}:${row.collectionId ?? "root"}`;
+      const next = (counters.get(scopeKey) ?? 0) + 1;
+      counters.set(scopeKey, next);
+      if (row.sortOrder !== next) {
+        await prisma.product.update({
+          where: { id: row.id },
+          data: { sortOrder: next },
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Failed to backfill Product.sortOrder", error);
+  }
+}
+void backfillProductSortOrders();
+
+async function getNextProductSortOrder(categoryId: number, collectionId: number | null) {
+  const last = await prisma.product.findFirst({
+    where: { categoryId, collectionId },
+    orderBy: [{ sortOrder: "desc" }, { id: "desc" }],
+    select: { sortOrder: true },
+  });
+
+  return (last?.sortOrder ?? 0) + 1;
+}
 
 app.get("/", (_req, res) => {
   res.send("Hammer Group API is running 🚀");
@@ -323,21 +380,21 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       let stopperCtrl = stopper.controls.find((c: any) => c.id === 'stopper');
       if (!stopperCtrl) {
         stopperCtrl = { id: 'stopper', type: 'select', label: 'Стопор', defaultValue: 'none', options: [
-          { id: 'none', label: 'Not Selected', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'none', label: 'Не вибрано', priceStrategy: { type: 'FIXED', amountCents: 0 } },
           { id: 'phantom', label: 'Фантом', priceStrategy: { type: 'FIXED', amountCents: 0 } },
           { id: 'mvm', label: 'MVM', priceStrategy: { type: 'FIXED', amountCents: 0 } },
         ]};
         stopper.controls.push(stopperCtrl);
       }
-      // Ensure 'Not Selected' exists and is first/default
+      // Ensure the empty option exists and is first/default
       if (stopperCtrl) {
         stopperCtrl.type = 'select';
         const opts = Array.isArray(stopperCtrl.options) ? stopperCtrl.options : [];
         let none = opts.find((o: any) => o.id === 'none');
         if (!none) {
-          opts.unshift({ id: 'none', label: 'Not Selected', priceStrategy: { type: 'FIXED', amountCents: 0 } });
+          opts.unshift({ id: 'none', label: 'Не вибрано', priceStrategy: { type: 'FIXED', amountCents: 0 } });
         } else {
-          none.label = 'Not Selected';
+          none.label = 'Не вибрано';
         }
         stopperCtrl.options = [opts.find((o: any) => o.id === 'none'), ...opts.filter((o: any) => o.id !== 'none')];
         stopperCtrl.defaultValue = 'none';
@@ -349,22 +406,22 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       let edgeColor = edge.controls.find((c: any) => c.id === 'edgeColor');
       if (!edgeColor) {
         edgeColor = { id: 'edgeColor', type: 'select', label: 'Торець', defaultValue: 'none', options: [
-          { id: 'none', label: 'Not Selected', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+          { id: 'none', label: 'Не вибрано', priceStrategy: { type: 'FIXED', amountCents: 0 } },
           { id: 'black', label: 'Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
           { id: 'gold', label: 'Золотий', priceStrategy: { type: 'FIXED', amountCents: 0 } },
           { id: 'silver', label: 'Срібний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
         ]};
         edge.controls.push(edgeColor);
       }
-      // Ensure 'Not Selected' exists and is first/default for edge
+      // Ensure the empty option exists and is first/default for edge
       if (edgeColor) {
         edgeColor.type = 'select';
         const opts = Array.isArray(edgeColor.options) ? edgeColor.options : [];
         let none = opts.find((o: any) => o.id === 'none');
         if (!none) {
-          opts.unshift({ id: 'none', label: 'Not Selected', priceStrategy: { type: 'FIXED', amountCents: 0 } });
+          opts.unshift({ id: 'none', label: 'Не вибрано', priceStrategy: { type: 'FIXED', amountCents: 0 } });
         } else {
-          none.label = 'Not Selected';
+          none.label = 'Не вибрано';
         }
         edgeColor.options = [opts.find((o: any) => o.id === 'none'), ...opts.filter((o: any) => o.id !== 'none')];
         edgeColor.defaultValue = 'none';
@@ -387,7 +444,7 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       // Ensure sizes group exists and appears first
       let sizes = schema.groups?.find((g: any) => g.id === 'sizes');
       if (!sizes) {
-        sizes = { id: 'sizes', label: 'Sizes', controls: [] };
+        sizes = { id: 'sizes', label: 'Розміри', controls: [] };
         schema.groups = [sizes, ...(schema.groups || [])];
       } else {
         // Move to front
@@ -414,12 +471,12 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       // Ensure hinges control exists (radio 3/4/5) with zero amounts by default
       let hingesGroup = schema.groups?.find((g: any) => g.id === 'hinges');
       if (!hingesGroup) {
-        hingesGroup = { id: 'hinges', label: 'Hinges', controls: [] };
+        hingesGroup = { id: 'hinges', label: 'Петлі', controls: [] };
         schema.groups.push(hingesGroup);
       }
       let hingesCtrl = hingesGroup.controls.find((c: any) => c.id === 'hinges');
       if (!hingesCtrl) {
-        hingesCtrl = { id: 'hinges', type: 'radio', label: 'Hinges', options: [] };
+        hingesCtrl = { id: 'hinges', type: 'radio', label: 'Петлі', options: [] };
         hingesGroup.controls.push(hingesCtrl);
       }
       const hingeOpt = (id: string, label: string) => {
@@ -431,7 +488,7 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
 
       // Ensure install group exists (Під штукатурку / Під панелі)
       let install = schema.groups?.find((g: any) => g.id === 'install');
-      if (!install) { install = { id: 'install', label: 'Installation', controls: [] }; schema.groups.push(install); }
+      if (!install) { install = { id: 'install', label: 'Тип монтажу', controls: [] }; schema.groups.push(install); }
       let installType = install.controls.find((c: any) => c.id === 'installType');
       if (!installType) {
         installType = { id: 'installType', type: 'radio', label: 'Тип монтажу', required: true, defaultValue: 'flushPlaster', options: [
@@ -490,10 +547,10 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       if (!hardware) { hardware = { id: 'hardware', label: 'Hardware', controls: [] }; schema.groups.push(hardware); }
       const mkBool = (id: string, label: string) => ({ id, type: 'boolean', label, defaultValue: false, priceStrategy: { type: 'FIXED', amountCents: 0 } });
       hardware.controls = [
-        mkBool('magneticLock', 'Magnetic lock'),
-        mkBool('magneticStopper', 'Magnetic stopper'),
-        mkBool('dropDownThreshold', 'Drop-down threshold'),
-        mkBool('paintFrameCasing', 'Painting of frame and casing'),
+        mkBool('magneticLock', 'Магнітний замок'),
+        mkBool('magneticStopper', 'Магнітний стопор'),
+        mkBool('dropDownThreshold', 'Випадаючий поріг'),
+        mkBool('paintFrameCasing', 'Фарбування короба та рами'),
       ];
     }
   } catch (_) {}
@@ -670,7 +727,7 @@ app.get("/api/products", async (req, res) => {
         ...(showInactive ? {} : { isActive: true }),
       },
       include: { category: true, collection: true },
-      orderBy: { id: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
     // Attach converted base price in UAH using today's FX
     let fxRate: number | null = null;
@@ -818,6 +875,7 @@ app.get("/api/furniture/portfolio", async (_req, res) => {
       id: it.id,
       name: it.name,
       slug: it.slug ?? `${toSlug(String(it.name ?? "")) || "item"}-${it.id}`,
+      projectType: it.projectType ?? "FURNITURE",
       coverUrl: it.imageUrl, // legacy field
       albumUrls: Array.isArray(it.albumJson as any) ? (it.albumJson as any) : (Array.isArray(albums[String(it.id)]) ? albums[String(it.id)] : []),
       createdAt: it.createdAt,
@@ -833,6 +891,7 @@ app.get("/api/furniture/portfolio", async (_req, res) => {
 app.post("/api/furniture/portfolio", async (req, res) => {
   try {
     const { name, slug } = req.body ?? {};
+    const projectType = req.body?.projectType === "DOORS" ? ProjectCategory.DOORS : ProjectCategory.FURNITURE;
     const coverUrl = req.body?.coverUrl || req.body?.imageUrl; // backward compat
     const albumUrls = Array.isArray(req.body?.albumUrls) ? req.body.albumUrls as string[] : [];
     if (!name || !coverUrl) return res.status(400).json({ error: "name and coverUrl are required" });
@@ -841,13 +900,13 @@ app.post("/api/furniture/portfolio", async (req, res) => {
       return Boolean(existing);
     });
     const item = await prisma.furniturePortfolio.create({
-      data: { name: String(name), slug: uniqueSlug, imageUrl: String(coverUrl), albumJson: albumUrls as any },
+      data: { name: String(name), slug: uniqueSlug, projectType, imageUrl: String(coverUrl), albumJson: albumUrls as any },
     });
     // Legacy file-store write (best-effort)
     const albums = await readAlbumsStore();
     albums[String(item.id)] = albumUrls;
     await writeAlbumsStore(albums);
-    res.status(201).json({ id: item.id, name: item.name, slug: item.slug, coverUrl: coverUrl, albumUrls });
+    res.status(201).json({ id: item.id, name: item.name, slug: item.slug, projectType: item.projectType, coverUrl: coverUrl, albumUrls });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to create portfolio item" });
@@ -858,6 +917,7 @@ app.put("/api/furniture/portfolio/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
     const { name, slug } = req.body ?? {};
+    const projectType = req.body?.projectType;
     const coverUrl = (req.body?.coverUrl ?? req.body?.imageUrl) as string | undefined;
     const albumUrls = Array.isArray(req.body?.albumUrls) ? (req.body.albumUrls as string[]) : undefined;
     const current = await prisma.furniturePortfolio.findUnique({ where: { id }, select: { id: true, name: true } });
@@ -879,12 +939,13 @@ app.put("/api/furniture/portfolio/:id", async (req, res) => {
       data: {
         ...(name !== undefined ? { name: nextName } : {}),
         ...(nextSlug !== undefined ? { slug: nextSlug } : {}),
+        ...(projectType !== undefined ? { projectType: projectType === "DOORS" ? ProjectCategory.DOORS : ProjectCategory.FURNITURE } : {}),
         ...(coverUrl !== undefined ? { imageUrl: String(coverUrl) } : {}),
         ...(albumUrls !== undefined ? { albumJson: albumUrls as any } : {}),
       },
     });
     if (albumUrls) { const albums = await readAlbumsStore(); albums[String(id)] = albumUrls; await writeAlbumsStore(albums); }
-    res.json({ id: item.id, name: item.name, slug: item.slug ?? null, coverUrl: item.imageUrl, albumUrls: (albumUrls ?? (item.albumJson as any) ?? []) });
+    res.json({ id: item.id, name: item.name, slug: item.slug ?? null, projectType: item.projectType, coverUrl: item.imageUrl, albumUrls: (albumUrls ?? (item.albumJson as any) ?? []) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to update portfolio item" });
@@ -925,7 +986,7 @@ app.get("/api/products/:id", async (req, res) => {
 // Create product
 app.post("/api/products", authenticate, requireAdmin, async (req, res) => {
   try {
-    const { name, slug, basePriceCents, imageUrl, categoryId, categorySlug, isActive, description, collectionId, doorType } = req.body ?? {};
+    const { name, slug, basePriceCents, imageUrl, categoryId, categorySlug, isActive, description, collectionId, doorType, sortOrder } = req.body ?? {};
 
     if (!name || typeof basePriceCents !== "number") {
       return res.status(400).json({ error: "name and basePriceCents are required" });
@@ -945,16 +1006,21 @@ app.post("/api/products", authenticate, requireAdmin, async (req, res) => {
       const existing = await prisma.product.findUnique({ where: { slug: candidate }, select: { id: true } });
       return Boolean(existing);
     });
+    const resolvedCollectionId = collectionId ? Number(collectionId) : null;
+    const nextSortOrder = Number.isFinite(Number(sortOrder))
+      ? Math.max(0, Math.round(Number(sortOrder)))
+      : await getNextProductSortOrder(resolvedCategoryId, resolvedCollectionId);
 
     const product = await prisma.product.create({
       data: {
         name: String(name),
         slug: uniqueSlug,
         basePriceCents: Math.round(basePriceCents),
+        sortOrder: nextSortOrder,
         imageUrl: imageUrl ?? null,
         categoryId: resolvedCategoryId,
         description: description ?? null,
-        collectionId: collectionId ? Number(collectionId) : null,
+        collectionId: resolvedCollectionId,
         doorType: doorType === 'BUDGET' ? 'BUDGET' as any : 'STANDARD',
         isActive: typeof isActive === "boolean" ? isActive : true,
       },
@@ -974,8 +1040,8 @@ app.post("/api/products", authenticate, requireAdmin, async (req, res) => {
 app.put("/api/products/:id", authenticate, requireAdmin, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { name, slug, basePriceCents, imageUrl, categoryId, isActive, description, collectionId, doorType } = req.body ?? {};
-    const current = await prisma.product.findUnique({ where: { id }, select: { id: true, name: true } });
+    const { name, slug, basePriceCents, imageUrl, categoryId, isActive, description, collectionId, doorType, sortOrder } = req.body ?? {};
+    const current = await prisma.product.findUnique({ where: { id }, select: { id: true, name: true, categoryId: true, collectionId: true } });
     if (!current) return res.status(404).json({ error: "Product not found" });
 
     const nextName = name !== undefined ? String(name) : current.name;
@@ -987,6 +1053,15 @@ app.put("/api/products/:id", authenticate, requireAdmin, async (req, res) => {
       });
     }
 
+    const nextCategoryId = categoryId !== undefined ? Number(categoryId) : current.categoryId;
+    const nextCollectionId = collectionId !== undefined ? (collectionId === null ? null : Number(collectionId)) : current.collectionId;
+    const movingScope = nextCategoryId !== current.categoryId || nextCollectionId !== current.collectionId;
+    const nextSortOrder = sortOrder !== undefined
+      ? Math.max(0, Math.round(Number(sortOrder)))
+      : movingScope
+        ? await getNextProductSortOrder(nextCategoryId, nextCollectionId)
+        : undefined;
+
     const product = await prisma.product.update({
       where: { id },
       data: {
@@ -994,10 +1069,11 @@ app.put("/api/products/:id", authenticate, requireAdmin, async (req, res) => {
         ...(nextSlug !== undefined ? { slug: nextSlug } : {}),
         ...(basePriceCents !== undefined ? { basePriceCents: Math.round(Number(basePriceCents)) } : {}),
         ...(imageUrl !== undefined ? { imageUrl: imageUrl ?? null } : {}),
-        ...(categoryId !== undefined ? { categoryId: Number(categoryId) } : {}),
+        ...(categoryId !== undefined ? { categoryId: nextCategoryId } : {}),
         ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {}),
         ...(description !== undefined ? { description: description === null ? null : String(description) } : {}),
-        ...(collectionId !== undefined ? { collectionId: collectionId === null ? null : Number(collectionId) } : {}),
+        ...(collectionId !== undefined ? { collectionId: nextCollectionId } : {}),
+        ...(nextSortOrder !== undefined ? { sortOrder: nextSortOrder } : {}),
         ...(doorType !== undefined ? { doorType: doorType === 'BUDGET' ? 'BUDGET' as any : 'STANDARD' as any } : {}),
       },
     });
@@ -1012,6 +1088,73 @@ app.put("/api/products/:id", authenticate, requireAdmin, async (req, res) => {
     }
     console.error(error);
     res.status(500).json({ error: "Failed to update product" });
+  }
+});
+
+app.put("/api/interior-doors/reorder", authenticate, requireAdmin, async (req, res) => {
+  try {
+    const payload = Array.isArray(req.body) ? req.body : null;
+    if (!payload || payload.length === 0) {
+      return res.status(400).json({ error: "Має бути передано непорожній масив позицій." });
+    }
+
+    const normalized = payload.map((item) => ({
+      id: Number(item?.id),
+      sortOrder: Number(item?.sortOrder),
+    }));
+
+    if (normalized.some((item) => !Number.isInteger(item.id) || item.id <= 0 || !Number.isInteger(item.sortOrder) || item.sortOrder < 0)) {
+      return res.status(400).json({ error: "Кожен елемент має містити коректні id та sortOrder." });
+    }
+
+    const ids = normalized.map((item) => item.id);
+    if (new Set(ids).size !== ids.length) {
+      return res.status(400).json({ error: "ID дверей не повинні повторюватися." });
+    }
+
+    const products = await prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        collectionId: true,
+        category: { select: { slug: true } },
+      },
+    });
+
+    if (products.length !== ids.length) {
+      return res.status(404).json({ error: "Частину дверей не знайдено." });
+    }
+
+    if (products.some((product) => product.category.slug !== "interior")) {
+      return res.status(400).json({ error: "Перевпорядковувати можна лише міжкімнатні двері." });
+    }
+
+    const collectionIds = new Set(products.map((product) => product.collectionId ?? null));
+    if (collectionIds.size > 1) {
+      return res.status(400).json({ error: "Двері для сортування мають належати одній колекції." });
+    }
+
+    await prisma.$transaction(
+      normalized
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+        .map((item, index) =>
+          prisma.product.update({
+            where: { id: item.id },
+            data: { sortOrder: index + 1 },
+          }),
+        ),
+    );
+
+    const updated = await prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, sortOrder: true },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Не вдалося зберегти порядок дверей." });
   }
 });
 

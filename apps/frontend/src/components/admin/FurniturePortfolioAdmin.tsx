@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { resolveImageUrl, uploadImage, API_ORIGIN } from "@/services/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type Item = { id: number; name: string; coverUrl: string; albumUrls: string[] };
+type ProjectType = "DOORS" | "FURNITURE";
+type Item = { id: number; name: string; coverUrl: string; albumUrls: string[]; projectType: ProjectType };
 
 async function listItems(): Promise<Item[]> {
   const res = await fetch(`${API_ORIGIN}/api/furniture/portfolio`);
@@ -19,13 +21,14 @@ export default function FurniturePortfolioAdmin() {
   const [editing, setEditing] = useState<Item | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [name, setName] = useState("");
+  const [projectType, setProjectType] = useState<ProjectType>("FURNITURE");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [albumUrls, setAlbumUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const body = JSON.stringify({ name, coverUrl, albumUrls });
+      const body = JSON.stringify({ name, projectType, coverUrl, albumUrls });
       const res = await fetch(
         editing ? `${API_ORIGIN}/api/furniture/portfolio/${editing.id}` : `${API_ORIGIN}/api/furniture/portfolio`,
         { method: editing ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body },
@@ -34,7 +37,7 @@ export default function FurniturePortfolioAdmin() {
       return res.json();
     },
     onSuccess: () => {
-      setEditing(null); setName(""); setCoverUrl(null); setAlbumUrls([]); setShowEditor(false);
+      setEditing(null); setName(""); setProjectType("FURNITURE"); setCoverUrl(null); setAlbumUrls([]); setShowEditor(false);
       qc.invalidateQueries({ queryKey: ["f-portfolio"] });
     },
   });
@@ -51,11 +54,13 @@ export default function FurniturePortfolioAdmin() {
     if (item) {
       setEditing(item);
       setName(item.name);
+      setProjectType(item.projectType);
       setCoverUrl(item.coverUrl);
       setAlbumUrls(item.albumUrls || []);
     } else {
       setEditing(null);
       setName("");
+      setProjectType("FURNITURE");
       setCoverUrl(null);
       setAlbumUrls([]);
     }
@@ -82,7 +87,7 @@ export default function FurniturePortfolioAdmin() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Портфоліо меблів</h2>
+        <h2 className="text-xl font-semibold">Портфоліо реалізованих проєктів</h2>
         <Button onClick={() => startEdit()}>Додати елемент</Button>
       </div>
 
@@ -102,6 +107,18 @@ export default function FurniturePortfolioAdmin() {
 
           {/* Album upload */}
           <div className="space-y-2">
+            <div className="text-sm font-medium">Категорія</div>
+            <Select value={projectType} onValueChange={(value) => setProjectType(value as ProjectType)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Оберіть категорію" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DOORS">Двері</SelectItem>
+                <SelectItem value="FURNITURE">Меблі</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <div className="text-sm font-medium">Зображення альбому</div>
             <div className="flex flex-wrap gap-2">
               {albumUrls.map((u, idx) => (
@@ -119,7 +136,7 @@ export default function FurniturePortfolioAdmin() {
             <Button disabled={!name || !coverUrl || saveMutation.isPending} onClick={() => saveMutation.mutate()}>
               {saveMutation.isPending ? "Збереження..." : "Зберегти"}
             </Button>
-            <Button variant="outline" onClick={() => { setEditing(null); setName(""); setCoverUrl(null); setAlbumUrls([]); setShowEditor(false); }}>Скасувати</Button>
+            <Button variant="outline" onClick={() => { setEditing(null); setName(""); setProjectType("FURNITURE"); setCoverUrl(null); setAlbumUrls([]); setShowEditor(false); }}>Скасувати</Button>
           </div>
         </Card>
       )}
@@ -131,7 +148,10 @@ export default function FurniturePortfolioAdmin() {
           <Card key={it.id} className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src={resolveImageUrl(it.coverUrl) || undefined} alt={it.name} className="h-12 w-12 object-cover rounded border" />
-              <span className="font-medium">{it.name}</span>
+              <div>
+                <span className="font-medium">{it.name}</span>
+                <div className="text-xs text-muted-foreground">{it.projectType === "DOORS" ? "Двері" : "Меблі"}</div>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => startEdit(it)}>Редагувати</Button>

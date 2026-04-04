@@ -27,7 +27,7 @@ export default function AdminLayout() {
         <nav className="flex flex-col gap-3">
           <Link to="/admin/interior-doors">Міжкімнатні двері</Link>
           <Link to="/admin/concealed-doors">Приховані двері</Link>
-          <Link to="/admin/furniture-portfolio">Портфоліо меблів</Link>
+          <Link to="/admin/furniture-portfolio">Портфоліо реалізованих проєктів</Link>
           <Link to="/admin/furniture-quotes">
             Заявки на меблі
             {stats?.undelivered?.furniture ? (

@@ -66,7 +66,7 @@
       "phone2": "+380 95 004 04 50",
       "free": "Безкоштовна консультація",
       "emailUs": "Напишіть нам",
-      "email": "info@hammergroup.ua",
+      "email": "hammergrop25@gmail.com",
       "quick": "Швидка відповідь",
       "hours": "Графік роботи",
       "range": "Пн‑Нд: 10:00 – 19:00",
@@ -243,12 +243,12 @@
         "hidden": "Приховані"
       },
       "stopper": {
-        "none": "Not Selected",
+        "none": "Не вибрано",
         "phantom": "Фантом",
         "mvm": "MVM"
       },
       "edgeColor": {
-        "none": "Not Selected",
+        "none": "Не вибрано",
         "black": "Чорний",
         "gold": "Золотий",
         "silver": "Срібний"

@@ -2,7 +2,7 @@ import { Instagram, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL } from '@/lib/contact';
+import { CONTACT_EMAIL, CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL, INSTAGRAM_URL } from '@/lib/contact';
 
 const Footer = () => {
   const scrollToTop = () => {
@@ -27,7 +27,7 @@ const Footer = () => {
             <div className="flex space-x-4">
               <Button asChild variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-accent hover:bg-accent/10">
                 <a
-                  href="https://www.instagram.com/hammergroupua/"
+                  href={INSTAGRAM_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Hammer Group Instagram"
@@ -87,8 +87,8 @@ const Footer = () => {
                 </a>
               </p>
               <p>
-                <a href="mailto:info@hammergroup.ua" className="hover:text-accent transition-colors">
-                  info@hammergroup.ua
+                <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-accent transition-colors">
+                  {CONTACT_EMAIL}
                 </a>
               </p>
             </div>

@@ -212,13 +212,13 @@ async function main() {
   });
 
   // Interior collections
-  const classicCol = await prisma.collection.create({ data: { categoryId: interior.id, name: "Classic", slug: "classic" } });
-  const modernCol = await prisma.collection.create({ data: { categoryId: interior.id, name: "Modern", slug: "modern" } });
+  const classicCol = await prisma.collection.create({ data: { categoryId: interior.id, name: "Класика", slug: "classic" } });
+  const modernCol = await prisma.collection.create({ data: { categoryId: interior.id, name: "Модерн", slug: "modern" } });
 
   await prisma.product.createMany({
     data: [
       {
-        name: "Classic Oak",
+        name: "Класичний дуб",
         slug: "classic-oak",
         basePriceCents: 34900,
         imageUrl: "/doors/classic-oak.jpg",
@@ -226,7 +226,7 @@ async function main() {
         collectionId: classicCol.id,
       },
       {
-        name: "Modern White",
+        name: "Сучасний білий",
         slug: "modern-white",
         basePriceCents: 38900,
         imageUrl: "/doors/modern-white.jpg",
@@ -241,12 +241,12 @@ async function main() {
   if (concealed) {
     await prisma.product.createMany({
       data: [
-        { name: "Concealed Basic", slug: "concealed-basic", basePriceCents: 49900, imageUrl: "/doors/concealed-basic.jpg", categoryId: concealed.id, description: "Entry concealed door type with core features." },
-        { name: "Concealed Flush", slug: "concealed-flush", basePriceCents: 52900, imageUrl: "/doors/concealed-flush.jpg", categoryId: concealed.id, description: "Flush with wall minimalist appearance." },
-        { name: "Concealed Tall", slug: "concealed-tall", basePriceCents: 55900, imageUrl: "/doors/concealed-tall.jpg", categoryId: concealed.id, description: "Increased height concealed system." },
-        { name: "Concealed Acoustic", slug: "concealed-acoustic", basePriceCents: 58900, imageUrl: "/doors/concealed-acoustic.jpg", categoryId: concealed.id, description: "Improved sound dampening package." },
-        { name: "Concealed Glass", slug: "concealed-glass", basePriceCents: 61900, imageUrl: "/doors/concealed-glass.jpg", categoryId: concealed.id, description: "Glass panel concealed construction." },
-        { name: "Concealed Premium", slug: "concealed-premium", basePriceCents: 67900, imageUrl: "/doors/concealed-premium.jpg", categoryId: concealed.id, description: "Premium hardware and finishes." },
+        { name: "Базові приховані двері", slug: "concealed-basic", basePriceCents: 49900, imageUrl: "/doors/concealed-basic.jpg", categoryId: concealed.id, description: "Базова модель прихованих дверей для сучасного інтер’єру." },
+        { name: "Приховані двері Flush", slug: "concealed-flush", basePriceCents: 52900, imageUrl: "/doors/concealed-flush.jpg", categoryId: concealed.id, description: "Мінімалістичне полотно врівень зі стіною." },
+        { name: "Високі приховані двері", slug: "concealed-tall", basePriceCents: 55900, imageUrl: "/doors/concealed-tall.jpg", categoryId: concealed.id, description: "Система для збільшеної висоти та виразних пропорцій." },
+        { name: "Акустичні приховані двері", slug: "concealed-acoustic", basePriceCents: 58900, imageUrl: "/doors/concealed-acoustic.jpg", categoryId: concealed.id, description: "Покращена шумоізоляція для приватних просторів." },
+        { name: "Приховані двері зі склом", slug: "concealed-glass", basePriceCents: 61900, imageUrl: "/doors/concealed-glass.jpg", categoryId: concealed.id, description: "Полотно зі скляними елементами для легкого акценту." },
+        { name: "Преміальні приховані двері", slug: "concealed-premium", basePriceCents: 67900, imageUrl: "/doors/concealed-premium.jpg", categoryId: concealed.id, description: "Преміальна фурнітура та розширені варіанти оздоблення." },
       ],
     });
 

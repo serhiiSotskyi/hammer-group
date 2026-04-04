@@ -20,9 +20,9 @@ export default function InteriorCollectionListPage() {
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">
-          {String(collection)[0]?.toUpperCase() + String(collection).slice(1)} Collection
+          {String(collection)[0]?.toUpperCase() + String(collection).slice(1)} · {t('pages.interiorTitle')}
         </h1>
-        <Link to="/interior-doors" className="text-accent underline text-sm sm:text-base">Back</Link>
+        <Link to="/interior-doors" className="text-accent underline text-sm sm:text-base">Назад</Link>
       </div>
       {/* Mobile: 2 per row; Tablets: 2; Desktop: 5 (≈18% each) */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 door-grid">

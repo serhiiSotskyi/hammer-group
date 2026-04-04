@@ -27,7 +27,7 @@ export default function CabinetFurnitureForm() {
       setFormData({ name: '', email: '', phone: '', message: '' });
       toast({ title: t('contact.send'), description: t('contact.managerSoon') });
     } catch (err) {
-      toast({ title: 'Submission failed', description: err instanceof Error ? err.message : 'Try again later', variant: 'destructive' });
+      toast({ title: 'Не вдалося надіслати заявку', description: err instanceof Error ? err.message : 'Спробуйте ще раз трохи пізніше', variant: 'destructive' });
     } finally {
       setPending(false);
     }

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Menu, X, Phone, Mail } from "lucide-react";
+import { Instagram, Menu, X } from "lucide-react";
 import { Link } from "react-router-dom"; // ✅ React Router
 import { useTranslation } from 'react-i18next';
 import LanguageToggle from './LanguageToggle';
-import { Button } from "@/components/ui/button";
 import logo from "@/assets/HammerB.svg";
+import { INSTAGRAM_URL } from "@/lib/contact";
 
 const Navigation = () => {
   const { t } = useTranslation();
@@ -46,13 +46,16 @@ const Navigation = () => {
                 {item.name}
               </Link>
             ))}
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram Hammer Group"
+              className="text-foreground hover:text-accent transition-colors duration-300"
+            >
+              <Instagram className="w-5 h-5" />
+            </a>
             <LanguageToggle />
-          </div>
-
-          {/* Contact Info & CTA */}
-          <div className="hidden lg:flex items-center space-x-4">
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground" />
-            
           </div>
 
           {/* Mobile Menu Button */}
@@ -82,6 +85,16 @@ const Navigation = () => {
                   {item.name}
                 </Link>
               ))}
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-foreground hover:text-accent transition-colors duration-300 font-medium py-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Instagram className="w-5 h-5" />
+                Instagram
+              </a>
               <LanguageToggle />
             </div>
           </div>

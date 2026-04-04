@@ -24,6 +24,7 @@ export default function DoorProductCard({
         <img
           src={resolveImageUrl(imageUrl) || "/placeholder.svg"}
           alt={name}
+          loading="lazy"
           onError={(e) => {
             e.currentTarget.onerror = null;
             e.currentTarget.src = "/placeholder.svg";

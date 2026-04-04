@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
-import { CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL } from '@/lib/contact';
+import { API_ORIGIN } from '@/services/api';
+import { CONTACT_EMAIL, CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL } from '@/lib/contact';
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -28,12 +29,12 @@ const ContactSection = () => {
       });
       if (!res.ok) throw new Error('Failed to submit');
       toast({
-        title: "Message Sent!",
-        description: "We'll get back to you within 24 hours.",
+        title: "Повідомлення надіслано",
+        description: "Зв’яжемося з вами найближчим часом.",
       });
       setFormData({ name: '', email: '', phone: '', message: '' });
     } catch (err) {
-      toast({ title: 'Submission failed', description: 'Please try again later.', variant: 'destructive' as any });
+      toast({ title: 'Не вдалося надіслати повідомлення', description: 'Спробуйте ще раз трохи пізніше.', variant: 'destructive' as any });
     }
   };
 
@@ -44,7 +45,11 @@ const ContactSection = () => {
         {CONTACT_PHONE_DISPLAY}
       </a>
     )] },
-    { icon: Mail,  title: t('contact.info.emailUs'), details: [t('contact.info.email'), t('contact.info.quick')] },
+    { icon: Mail,  title: t('contact.info.emailUs'), details: [(
+      <a key="email" href={`mailto:${CONTACT_EMAIL}`} className="hover:text-accent transition-colors">
+        {CONTACT_EMAIL}
+      </a>
+    ), t('contact.info.quick')] },
     { icon: Clock, title: t('contact.info.hours'), details: [t('contact.info.range')] },
   ];
 
@@ -133,7 +138,7 @@ const ContactSection = () => {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      placeholder="your.email@domain.com"
+                      placeholder={CONTACT_EMAIL}
                       required
                     />
                   </div>

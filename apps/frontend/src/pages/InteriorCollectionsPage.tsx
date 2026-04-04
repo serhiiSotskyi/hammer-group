@@ -2,8 +2,10 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCollections, Collection, resolveImageUrl } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function InteriorCollectionsPage() {
+  const { t } = useTranslation();
   const { data, isLoading, error } = useQuery({
     queryKey: ['collections', 'interior-public'],
     queryFn: () => getCollections('interior'),
@@ -13,9 +15,9 @@ export default function InteriorCollectionsPage() {
 
   return (
     <div className="p-10">
-      <h1 className="text-4xl font-bold mb-8">Interior Door Collections</h1>
-      {isLoading && <p>Loading…</p>}
-      {error && <p className="text-red-500">Failed to load collections</p>}
+      <h1 className="text-4xl font-bold mb-8">{t('pages.interiorTitle')}</h1>
+      {isLoading && <p>Завантаження…</p>}
+      {error && <p className="text-red-500">Не вдалося завантажити колекції</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {collections.map((c) => (
           <Link key={c.slug} to={`/interior-doors/${c.slug}`}>
@@ -30,7 +32,7 @@ export default function InteriorCollectionsPage() {
                 <CardTitle className="text-2xl">{c.name}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Explore the {c.name.toLowerCase()} collection</p>
+                <p className="text-muted-foreground">Переглянути колекцію {c.name.toLowerCase()}</p>
               </CardContent>
             </Card>
           </Link>
