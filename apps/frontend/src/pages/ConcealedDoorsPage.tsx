@@ -28,7 +28,7 @@ export default function ConcealedDoorsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 min-[1600px]:grid-cols-3 gap-8 items-stretch">
         {products?.map((door: ProductResponse) => (
           <Card key={door.id} className="overflow-hidden transition hover:shadow-lg flex flex-col h-full">
-            <div className="door-card-media">
+            <div className="door-card-media aspect-[16/9]">
               <img
                 src={resolveImageUrl(door.imageUrl) || "/placeholder.svg"}
                 alt={door.name}
