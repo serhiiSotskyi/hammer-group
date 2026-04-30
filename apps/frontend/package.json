@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "validate:swa-config": "node scripts/validate-staticwebapp-config.mjs"
   },
   "dependencies": {
     "i18next": "^23.10.1",

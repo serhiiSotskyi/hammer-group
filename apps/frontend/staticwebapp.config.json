@@ -3,18 +3,25 @@
     "rewrite": "/index.html",
     "exclude": [
       "/assets/*",
+      "/api/*",
+      "/uploads/*",
       "/favicon.ico",
       "/robots.txt",
       "/sitemap.xml",
-      "/api/*",
       "*.css",
-      "*.js"
+      "*.js",
+      "*.mjs",
+      "*.map",
+      "*.json",
+      "*.ico",
+      "*.png",
+      "*.jpg",
+      "*.jpeg",
+      "*.gif",
+      "*.svg",
+      "*.webp",
+      "*.woff",
+      "*.woff2"
     ]
-  },
-  "responseOverrides": {
-    "404": {
-      "rewrite": "/index.html",
-      "statusCode": 200
-    }
   }
 }
