@@ -228,6 +228,36 @@ app.get("/", (_req, res) => {
   res.send("Hammer Group API is running 🚀");
 });
 
+type ProductPricingContext = {
+  slug: string;
+  doorType?: string | null;
+};
+
+const GLASS_TYPE_OPTIONS = [
+  { id: 'mirror_clear', label: 'дзеркало звичайне' },
+  { id: 'mirror_graphite', label: 'дзеркало графіт' },
+  { id: 'mirror_bronze', label: 'дзеркало бронза' },
+  { id: 'lacobel_superwhite', label: 'лакобель супербілий' },
+  { id: 'lacobel_black', label: 'лакобель чорний' },
+];
+
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function optionWithPreservedPrice(existingOptions: any[], id: string, label: string) {
+  const existing = existingOptions.find((o: any) => o.id === id);
+  return {
+    id,
+    label,
+    priceStrategy: existing?.priceStrategy || { type: 'FIXED', amountCents: 0 },
+  };
+}
+
+function isBudgetProduct(product?: ProductPricingContext | null) {
+  return String(product?.doorType || '').toUpperCase() === 'BUDGET';
+}
+
 // Normalize known schema quirks to ensure UI works even if config is incomplete
 function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
   if (!schema || typeof schema !== 'object') return schema as ParamSchemaJSON;
@@ -288,27 +318,39 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       let frame = schema.groups.find((g: any) => g.id === 'frame');
       if (!frame) { frame = { id: 'frame', label: 'Короб', controls: [] }; schema.groups.push(frame); }
       let frameType = frame.controls.find((c: any) => c.id === 'frameType');
+      const frameDefaults = [
+        { id: 'standard', label: 'Стандарт', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'complanar', label: 'Компланарний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'inside', label: 'Inside', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+      ];
       if (!frameType) {
-        frameType = { id: 'frameType', type: 'select', label: 'Короб', defaultValue: 'standard', options: [
-          { id: 'standard', label: 'Стандарт', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'complanar', label: 'Компланарний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'inside', label: 'Inside', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-        ]};
+        frameType = { id: 'frameType', type: 'select', label: 'Короб', defaultValue: 'standard', options: frameDefaults };
         frame.controls.push(frameType);
+      } else {
+        const existing = Array.isArray(frameType.options) ? frameType.options : [];
+        frameType.type = 'select';
+        frameType.options = frameDefaults.map((o) => optionWithPreservedPrice(existing, o.id, o.label));
+        frameType.defaultValue = frameType.options.some((o: any) => o.id === frameType.defaultValue) ? frameType.defaultValue : 'standard';
       }
 
       // Lock (Замок)
       let lock = schema.groups.find((g: any) => g.id === 'lock');
       if (!lock) { lock = { id: 'lock', label: 'Замок', controls: [] }; schema.groups.push(lock); }
       let lockType = lock.controls.find((c: any) => c.id === 'lockType');
+      const lockDefaults = [
+        { id: 'mechBlack', label: 'Механічний Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'mechChrome', label: 'Механічний Хром', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'magBlack', label: 'Магнітний Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'magChrome', label: 'Магнітний Хром', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+      ];
       if (!lockType) {
-        lockType = { id: 'lockType', type: 'select', label: 'Тип замка', defaultValue: 'mechBlack', options: [
-          { id: 'mechBlack', label: 'Механічний Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'mechChrome', label: 'Механічний Хром', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'magBlack', label: 'Магнітний Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'magChrome', label: 'Магнітний Хром', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-        ]};
+        lockType = { id: 'lockType', type: 'select', label: 'Тип замка', defaultValue: 'mechBlack', options: lockDefaults };
         lock.controls.push(lockType);
+      } else {
+        const existing = Array.isArray(lockType.options) ? lockType.options : [];
+        lockType.type = 'select';
+        lockType.options = lockDefaults.map((o) => optionWithPreservedPrice(existing, o.id, o.label));
+        lockType.defaultValue = lockType.options.some((o: any) => o.id === lockType.defaultValue) ? lockType.defaultValue : 'mechBlack';
       }
 
       // Casings (Лиштва): Outer only 'Звичайні'; Inner 'Звичайні' and 'Телескопічні'
@@ -322,11 +364,8 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
         casings.controls.push(casingOuter);
       } else {
         casingOuter.type = 'select';
-        // Restrict to only 'normal'
-        casingOuter.options = Array.isArray(casingOuter.options) ? casingOuter.options.filter((o: any) => o.id === 'normal') : [];
-        if (!casingOuter.options.find((o: any) => o.id === 'normal')) {
-          casingOuter.options.push({ id: 'normal', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } });
-        }
+        const existing = Array.isArray(casingOuter.options) ? casingOuter.options : [];
+        casingOuter.options = [optionWithPreservedPrice(existing, 'normal', 'Звичайні')];
         casingOuter.defaultValue = 'normal';
       }
       let casingInner = casings.controls.find((c: any) => c.id === 'casingInner');
@@ -338,12 +377,11 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
         casings.controls.push(casingInner);
       } else {
         casingInner.type = 'select';
-        // Keep only allowed ids and remove legacy 'overlay'
-        const allowed = new Set(['normal','telescopic']);
         const current = Array.isArray(casingInner.options) ? casingInner.options : [];
-        casingInner.options = current.filter((o: any) => allowed.has(o.id));
-        if (!casingInner.options.find((o: any) => o.id === 'normal')) casingInner.options.push({ id: 'normal', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } });
-        if (!casingInner.options.find((o: any) => o.id === 'telescopic')) casingInner.options.push({ id: 'telescopic', label: 'Телескопічні', priceStrategy: { type: 'FIXED', amountCents: 0 } });
+        casingInner.options = [
+          optionWithPreservedPrice(current, 'normal', 'Звичайні'),
+          optionWithPreservedPrice(current, 'telescopic', 'Телескопічні'),
+        ];
         casingInner.defaultValue = casingInner.defaultValue && ['normal','telescopic'].includes(casingInner.defaultValue) ? casingInner.defaultValue : 'normal';
       }
 
@@ -351,12 +389,18 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       let hinges = schema.groups.find((g: any) => g.id === 'hinges');
       if (!hinges) { hinges = { id: 'hinges', label: 'Петлі', controls: [] }; schema.groups.push(hinges); }
       let hingeType = hinges.controls.find((c: any) => c.id === 'hingeType');
+      const hingeTypeDefaults = [
+        { id: 'standard', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+        { id: 'hidden', label: 'Приховані', priceStrategy: { type: 'FIXED', amountCents: 0 } },
+      ];
       if (!hingeType) {
-        hingeType = { id: 'hingeType', type: 'select', label: 'Тип петель', defaultValue: 'standard', options: [
-          { id: 'standard', label: 'Звичайні', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'hidden', label: 'Приховані', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-        ]};
+        hingeType = { id: 'hingeType', type: 'select', label: 'Тип петель', defaultValue: 'standard', options: hingeTypeDefaults };
         hinges.controls.push(hingeType);
+      } else {
+        const existing = Array.isArray(hingeType.options) ? hingeType.options : [];
+        hingeType.type = 'select';
+        hingeType.options = hingeTypeDefaults.map((o) => optionWithPreservedPrice(existing, o.id, o.label));
+        hingeType.defaultValue = hingeType.options.some((o: any) => o.id === hingeType.defaultValue) ? hingeType.defaultValue : 'standard';
       }
       let hingeCount = hinges.controls.find((c: any) => c.id === 'hingeCount');
       const countDefaults = [
@@ -390,13 +434,11 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       if (stopperCtrl) {
         stopperCtrl.type = 'select';
         const opts = Array.isArray(stopperCtrl.options) ? stopperCtrl.options : [];
-        let none = opts.find((o: any) => o.id === 'none');
-        if (!none) {
-          opts.unshift({ id: 'none', label: 'Не вибрано', priceStrategy: { type: 'FIXED', amountCents: 0 } });
-        } else {
-          none.label = 'Не вибрано';
-        }
-        stopperCtrl.options = [opts.find((o: any) => o.id === 'none'), ...opts.filter((o: any) => o.id !== 'none')];
+        stopperCtrl.options = [
+          optionWithPreservedPrice(opts, 'none', 'Не вибрано'),
+          optionWithPreservedPrice(opts, 'phantom', 'Фантом'),
+          optionWithPreservedPrice(opts, 'mvm', 'MVM'),
+        ];
         stopperCtrl.defaultValue = 'none';
       }
 
@@ -417,13 +459,12 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       if (edgeColor) {
         edgeColor.type = 'select';
         const opts = Array.isArray(edgeColor.options) ? edgeColor.options : [];
-        let none = opts.find((o: any) => o.id === 'none');
-        if (!none) {
-          opts.unshift({ id: 'none', label: 'Не вибрано', priceStrategy: { type: 'FIXED', amountCents: 0 } });
-        } else {
-          none.label = 'Не вибрано';
-        }
-        edgeColor.options = [opts.find((o: any) => o.id === 'none'), ...opts.filter((o: any) => o.id !== 'none')];
+        edgeColor.options = [
+          optionWithPreservedPrice(opts, 'none', 'Не вибрано'),
+          optionWithPreservedPrice(opts, 'black', 'Чорний'),
+          optionWithPreservedPrice(opts, 'gold', 'Золотий'),
+          optionWithPreservedPrice(opts, 'silver', 'Срібний'),
+        ];
         edgeColor.defaultValue = 'none';
       }
 
@@ -436,10 +477,18 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
           { id: 'pvc', label: 'ПВХ', priceStrategy: { type: 'FIXED', amountCents: 0 } },
         ]};
         finish.controls.push(fc);
+      } else {
+        const existing = Array.isArray(fc.options) ? fc.options : [];
+        fc.type = 'select';
+        fc.label = 'Покриття';
+        fc.options = [optionWithPreservedPrice(existing, 'pvc', 'ПВХ')];
+        fc.defaultValue = 'pvc';
       }
 
-      // Set default displayMultiplier if missing
-      (schema as any).displayMultiplier = typeof (schema as any).displayMultiplier === 'number' && (schema as any).displayMultiplier > 0 ? (schema as any).displayMultiplier : 1.3;
+      const activeOrder = ['sizes', 'opening', 'frame', 'lock', 'casings', 'hinges', 'stopper', 'edge', 'finishCoat'];
+      schema.groups = activeOrder
+        .map((id) => schema.groups.find((g: any) => g.id === id))
+        .filter(Boolean);
     } else if (slug === 'concealed') {
       // Ensure sizes group exists and appears first
       let sizes = schema.groups?.find((g: any) => g.id === 'sizes');
@@ -525,6 +574,19 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
         edge.controls.push(edgeColor);
       }
 
+      let glass = schema.groups?.find((g: any) => g.id === 'glass');
+      if (!glass) { glass = { id: 'glass', label: 'Скло', controls: [] }; schema.groups.push(glass); }
+      let glassType = glass.controls.find((c: any) => c.id === 'glassType');
+      if (!glassType) {
+        glassType = { id: 'glassType', type: 'select', label: 'Скло', defaultValue: 'mirror_clear', options: [] };
+        glass.controls.push(glassType);
+      }
+      const existingGlassOptions = Array.isArray(glassType.options) ? glassType.options : [];
+      glassType.type = 'select';
+      glassType.label = 'Скло';
+      glassType.defaultValue = GLASS_TYPE_OPTIONS.some((o) => o.id === glassType.defaultValue) ? glassType.defaultValue : 'mirror_clear';
+      glassType.options = GLASS_TYPE_OPTIONS.map((o) => optionWithPreservedPrice(existingGlassOptions, o.id, o.label));
+
       // Remove profile/markup group from effective schema (pricing handled elsewhere)
       if (Array.isArray(schema.groups)) {
         schema.groups = schema.groups.filter((g: any) => g.id !== 'profile' && g.id !== 'finish');
@@ -557,6 +619,119 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
   return schema as ParamSchemaJSON;
 }
 
+function buildEffectiveSchema(
+  slug: string,
+  rawSchema: unknown,
+  product?: ProductPricingContext | null,
+): ParamSchemaJSON {
+  const schema = normalizeSchema(slug, cloneJson(rawSchema)) as unknown as ParamSchemaJSON;
+
+  if (slug !== 'concealed') {
+    return schema;
+  }
+
+  const budget = isBudgetProduct(product);
+  const groups = (schema as any).groups || [];
+
+  const sizes = groups.find((g: any) => g.id === 'sizes');
+  const height = sizes?.controls?.find((c: any) => c.id === 'heightMm');
+  if (budget && height) {
+    height.max = 2100;
+    if (height.defaultValue > 2100) height.defaultValue = 2100;
+  }
+
+  const construction = groups.find((g: any) => g.id === 'construction');
+  const frame = construction?.controls?.find((c: any) => c.id === 'frame');
+  if (frame && Array.isArray(frame.options)) {
+    const allowed = budget ? new Set(['wood']) : new Set(['wood', 'aluminium']);
+    frame.options = frame.options.filter((o: any) => allowed.has(o.id));
+    frame.defaultValue = frame.options.some((o: any) => o.id === frame.defaultValue) ? frame.defaultValue : frame.options[0]?.id;
+  }
+
+  const install = groups.find((g: any) => g.id === 'install');
+  const installType = install?.controls?.find((c: any) => c.id === 'installType');
+  if (budget && installType && Array.isArray(installType.options)) {
+    installType.options = installType.options.filter((o: any) => o.id === 'flushPlaster');
+    installType.defaultValue = 'flushPlaster';
+  }
+
+  const hingesGroup = groups.find((g: any) => g.id === 'hinges');
+  const hinges = hingesGroup?.controls?.find((c: any) => c.id === 'hinges');
+  if (hinges) {
+    const allowedHinges = budget
+      ? [
+          { id: '2', label: '2A' },
+          { id: '3', label: '3A' },
+          { id: '4', label: '4A' },
+        ]
+      : [
+          { id: '3', label: '3' },
+          { id: '4', label: '4' },
+          { id: '5', label: '5' },
+        ];
+    const existing = Array.isArray(hinges.options) ? hinges.options : [];
+    hinges.type = budget ? 'select' : 'radio';
+    hinges.options = allowedHinges.map((o) => optionWithPreservedPrice(existing, o.id, o.label));
+    hinges.defaultValue = allowedHinges.some((o) => o.id === hinges.defaultValue) ? hinges.defaultValue : (budget ? '3' : '3');
+  }
+
+  const edge = groups.find((g: any) => g.id === 'edge');
+  const edgeColor = edge?.controls?.find((c: any) => c.id === 'edgeColor');
+  if (edgeColor && Array.isArray(edgeColor.options)) {
+    const edgeDefaults = [
+      { id: 'black', label: 'Чорний' },
+      { id: 'gold', label: 'Золотий' },
+      { id: 'silver', label: 'Срібний' },
+    ];
+    const existing = edgeColor.options;
+    edgeColor.type = 'select';
+    edgeColor.options = edgeDefaults.map((o) => optionWithPreservedPrice(existing, o.id, o.label));
+    edgeColor.defaultValue = edgeDefaults.some((o) => o.id === edgeColor.defaultValue) ? edgeColor.defaultValue : 'black';
+  }
+
+  if (product && product.slug !== 'concealed-glass') {
+    (schema as any).groups = groups.filter((g: any) => g.id !== 'glass');
+  }
+
+  if (budget) {
+    (schema as any).budget = true;
+  }
+
+  return schema;
+}
+
+function sanitizeSelectionsForPricing(
+  categorySlug: string,
+  product: ProductPricingContext,
+  schema: ParamSchemaJSON,
+  rawSelections: Record<string, unknown> | undefined,
+) {
+  const selections = { ...(rawSelections || {}) };
+
+  if (categorySlug !== 'concealed') {
+    return selections;
+  }
+
+  if (!isBudgetProduct(product)) {
+    const heightRaw = selections.heightMm;
+    const heightCtrl = schema.groups.find((g) => g.id === 'sizes')?.controls.find((c) => c.id === 'heightMm') as RangeControl | undefined;
+    const height = typeof heightRaw === 'number'
+      ? heightRaw
+      : typeof heightRaw === 'string'
+        ? Number(heightRaw)
+        : heightCtrl?.defaultValue ?? 2100;
+    selections.hinges = height <= 2100 ? '3' : height <= 2300 ? '4' : '5';
+  } else {
+    selections.budget = true;
+  }
+
+  if (product.slug !== 'concealed-glass') {
+    delete selections.glassType;
+  }
+
+  return selections;
+}
+
 // Filter helper: keep only controls shown in the Interior customizer
 function filterInterior<T extends { groupId: string; controlId: string }>(lines: T[]): T[] {
   const allowedGroups = new Set([
@@ -586,13 +761,14 @@ function filterInterior<T extends { groupId: string; controlId: string }>(lines:
 }
 
 function filterConcealed<T extends { groupId: string; controlId: string }>(lines: T[]): T[] {
-  const allowedGroups = new Set(["sizes", "construction", "hardware", "install", "hinges", "opening", "edge"]);
+  const allowedGroups = new Set(["sizes", "construction", "hardware", "install", "hinges", "opening", "edge", "glass"]);
   const allowedControls = new Set([
     'heightMm',
     'frame',
     'magneticLock','magneticStopper','dropDownThreshold','paintFrameCasing',
     'installType','hinges','opening',
     'edgeColor',
+    'glassType',
   ]);
   return (lines || []).filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
 }
@@ -1180,6 +1356,7 @@ app.delete("/api/products/:id", authenticate, requireAdmin, async (req, res) => 
 app.get("/api/categories/:slug/schema", async (req, res) => {
   try {
     const slug = String(req.params.slug);
+    const productSlug = typeof req.query.productSlug === 'string' ? req.query.productSlug : undefined;
     const category = await prisma.category.findUnique({
       where: { slug },
       include: { activeSchema: true },
@@ -1189,7 +1366,19 @@ app.get("/api/categories/:slug/schema", async (req, res) => {
       return res.status(404).json({ error: `Schema not found for category ${slug}` });
     }
 
-    const normalized = normalizeSchema(slug, category.activeSchema.json);
+    let product: ProductPricingContext | null = null;
+    if (productSlug) {
+      const found = await prisma.product.findUnique({
+        where: { slug: productSlug },
+        include: { category: true },
+      });
+      if (!found || found.category.slug !== slug) {
+        return res.status(404).json({ error: `Product ${productSlug} not found for category ${slug}` });
+      }
+      product = found;
+    }
+
+    const normalized = buildEffectiveSchema(slug, category.activeSchema.json, product);
     res.json({
       categoryId: category.id,
       version: category.activeSchema.version,
@@ -1231,35 +1420,19 @@ app.post("/api/price", async (req, res) => {
       return res.status(404).json({ error: "Pricing schema not available" });
     }
 
-    let schema = normalizeSchema(product.category.slug, schemaRecord.json as any) as unknown as ParamSchemaJSON;
-    // Concealed Budget: cap height to 2100
-    const reqIsBudget = Boolean((selections as any)?.budget);
-    const dbIsBudget = String((product as any)?.doorType || '').toUpperCase() === 'BUDGET';
-    if (product.category.slug === 'concealed' && (dbIsBudget || reqIsBudget)) {
-      const sizes = (schema as any).groups?.find((g: any) => g.id === 'sizes');
-      const h = sizes?.controls?.find((c: any) => c.id === 'heightMm');
-      if (h) { h.max = 2100; if (h.defaultValue > 2100) h.defaultValue = 2100; }
-      // Flag schema so pricing engine uses Budget path reliably
-      (schema as any).budget = true;
-    }
-    const result = priceQuote(product.basePriceCents, schema, selections ?? {});
+    const schema = buildEffectiveSchema(product.category.slug, schemaRecord.json as any, product);
+    const effectiveSelections = sanitizeSelectionsForPricing(product.category.slug, product, schema, selections ?? {});
+    const result = priceQuote(product.basePriceCents, schema, effectiveSelections);
     const fx = await getDailyUsdToUah(prisma);
     const conv = (c: number) => convertCentsUsdToUah(c, fx.rate);
     const { normalizedSelections, ...priced } = result;
-    // Apply optional display multiplier to adjustments ONLY (never base)
-    const mult = typeof (schema as any).displayMultiplier === 'number' && (schema as any).displayMultiplier > 0 ? (schema as any).displayMultiplier : 1;
-    const scale = (v: number) => Math.round(v * mult);
-    const scaledBase = priced.basePriceCents; // never multiply base price
-    const scaledBreakdown = priced.breakdown.map((b) => ({ ...b, deltaCents: scale(b.deltaCents) }));
-    const scaledAdjustments = scaledBreakdown.reduce((sum, b) => sum + b.deltaCents, 0);
-    const scaledTotal = scaledBase + scaledAdjustments;
     res.json({
       currency: "UAH",
-      basePriceCents: conv(scaledBase),
-      adjustmentsCents: conv(scaledAdjustments),
-      totalPriceCents: conv(scaledTotal),
+      basePriceCents: conv(priced.basePriceCents),
+      adjustmentsCents: conv(priced.adjustmentsCents),
+      totalPriceCents: conv(priced.totalPriceCents),
       rounding: priced.rounding,
-      breakdown: scaledBreakdown.map((b) => ({ ...b, deltaCents: conv(b.deltaCents) })),
+      breakdown: priced.breakdown.map((b) => ({ ...b, deltaCents: conv(b.deltaCents) })),
       fx: { base: "USD", quote: "UAH", rate: fx.rate, asOf: fx.asOf, source: fx.source },
     });
   } catch (error) {
@@ -1299,82 +1472,19 @@ app.post("/api/quotes", async (req, res) => {
       return res.status(404).json({ error: "Pricing schema not available" });
     }
 
-    let schemaJson = normalizeSchema(product.category.slug, schemaRecord.json as any) as unknown as ParamSchemaJSON;
-    const reqIsBudget2 = Boolean((selections as any)?.budget);
-    const dbIsBudget2 = String((product as any)?.doorType || '').toUpperCase() === 'BUDGET';
-    if (product.category.slug === 'concealed' && (dbIsBudget2 || reqIsBudget2)) {
-      const sizes = (schemaJson as any).groups?.find((g: any) => g.id === 'sizes');
-      const h = sizes?.controls?.find((c: any) => c.id === 'heightMm');
-      if (h) { h.max = 2100; if (h.defaultValue > 2100) h.defaultValue = 2100; }
-      // Enforce Budget-specific restrictions
-      // 1) Frame only wood
-      const construction = (schemaJson as any).groups?.find((g: any) => g.id === 'construction');
-      const frame = construction?.controls?.find((c: any) => c.id === 'frame');
-      if (frame && Array.isArray(frame.options)) {
-        frame.options = frame.options.filter((o: any) => o.id === 'wood');
-        frame.defaultValue = 'wood';
-      }
-      // 2) Install type only flushPlaster
-      const install = (schemaJson as any).groups?.find((g: any) => g.id === 'install');
-      const installType = install?.controls?.find((c: any) => c.id === 'installType');
-      if (installType && Array.isArray(installType.options)) {
-        installType.options = installType.options.filter((o: any) => o.id === 'flushPlaster');
-        installType.defaultValue = 'flushPlaster';
-      }
-      // 3) Hinges options 2/3/4 of type A (price totals configurable via admin)
-      let hingesGroup = (schemaJson as any).groups?.find((g: any) => g.id === 'hinges');
-      if (!hingesGroup) { hingesGroup = { id: 'hinges', label: 'Петлі', controls: [] }; (schemaJson as any).groups.push(hingesGroup); }
-      let hingesCtrl2 = hingesGroup.controls.find((c: any) => c.id === 'hinges');
-      if (!hingesCtrl2) {
-        hingesCtrl2 = { id: 'hinges', type: 'select', label: 'Петлі', defaultValue: '3', options: [
-          { id: '2', label: '2A', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: '3', label: '3A', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: '4', label: '4A', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-        ] };
-        hingesGroup.controls.push(hingesCtrl2);
-      } else {
-        hingesCtrl2.type = 'select';
-        const allowed = new Set(['2','3','4']);
-        hingesCtrl2.options = (Array.isArray(hingesCtrl2.options) ? hingesCtrl2.options : []).filter((o: any) => allowed.has(o.id));
-        // Ensure presence with A labels
-        ['2','3','4'].forEach((id) => { if (!hingesCtrl2.options.find((o: any) => o.id === id)) hingesCtrl2.options.push({ id, label: `${id}A`, priceStrategy: { type: 'FIXED', amountCents: 0 } }); });
-        // Normalize labels to include A suffix
-        hingesCtrl2.options = hingesCtrl2.options.map((o: any) => ({ ...o, label: `${o.id}A` }));
-        if (!hingesCtrl2.defaultValue || !allowed.has(hingesCtrl2.defaultValue)) hingesCtrl2.defaultValue = '3';
-      }
-      // 4) Edge colors Black/Gold/Silver
-      let edgeGroup = (schemaJson as any).groups?.find((g: any) => g.id === 'edge');
-      if (!edgeGroup) { edgeGroup = { id: 'edge', label: 'Торець', controls: [] }; (schemaJson as any).groups.push(edgeGroup); }
-      let edgeCtrl = edgeGroup.controls.find((c: any) => c.id === 'edgeColor');
-      if (!edgeCtrl) {
-        edgeCtrl = { id: 'edgeColor', type: 'select', label: 'Торець', defaultValue: 'black', options: [
-          { id: 'black', label: 'Чорний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'gold', label: 'Золотий', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-          { id: 'silver', label: 'Срібний', priceStrategy: { type: 'FIXED', amountCents: 0 } },
-        ] };
-        edgeGroup.controls.push(edgeCtrl);
-      }
-      // 5) Mark as budget to disable opening surcharges
-      (schemaJson as any).budget = true;
-    }
-    const priced = priceQuote(product.basePriceCents, schemaJson, selections ?? {});
+    const schemaJson = buildEffectiveSchema(product.category.slug, schemaRecord.json as any, product);
+    const effectiveSelections = sanitizeSelectionsForPricing(product.category.slug, product, schemaJson, selections ?? {});
+    const priced = priceQuote(product.basePriceCents, schemaJson, effectiveSelections);
     const fx = await getDailyUsdToUah(prisma);
     const conv = (c: number) => convertCentsUsdToUah(c, fx.rate);
-    // Apply optional display multiplier to adjustments ONLY (never base)
-    const mult = typeof (schemaJson as any).displayMultiplier === 'number' && (schemaJson as any).displayMultiplier > 0 ? (schemaJson as any).displayMultiplier : 1;
-    const scale = (v: number) => Math.round(v * mult);
-    const scaledBase = priced.basePriceCents; // never multiply base price
-    const scaledBreakdown = priced.breakdown.map((b) => ({ ...b, deltaCents: scale(b.deltaCents) }));
-    const scaledAdjustments = scaledBreakdown.reduce((sum, b) => sum + b.deltaCents, 0);
-    const scaledTotal = scaledBase + scaledAdjustments;
     const normalizedSelections = priced.normalizedSelections;
     const payload = {
       currency: priced.currency,
-      basePriceCents: scaledBase,
-      adjustmentsCents: scaledAdjustments,
-      totalPriceCents: scaledTotal,
+      basePriceCents: priced.basePriceCents,
+      adjustmentsCents: priced.adjustmentsCents,
+      totalPriceCents: priced.totalPriceCents,
       rounding: priced.rounding,
-      breakdown: scaledBreakdown,
+      breakdown: priced.breakdown,
     };
 
     // Build resolved selections for admin readability
@@ -1920,10 +2030,7 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
     rateCents,
     rateUSDPer10,
     threshold,
-    markup,
   } = req.body ?? {};
-
-  const MARKUP = typeof markup === 'number' && markup > 0 ? Number(markup) : 1.3;
 
   try {
     // Helpers: robust numeric parsing and validation (supports decimal commas like "12,5")
@@ -1989,22 +2096,22 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
       const woodUSD = parseNumber(req.body?.woodUSD);
       const aluminiumUSD = parseNumber(req.body?.aluminiumUSD);
       if (!Number.isFinite(woodUSD as number) || !Number.isFinite(aluminiumUSD as number)) return res.status(400).json({ error: 'woodUSD and aluminiumUSD required (numbers)' });
-      const wood = Math.round((woodUSD as number) * MARKUP * 100);
-      const aluminium = Math.round((aluminiumUSD as number) * MARKUP * 100);
+      const wood = Math.round((woodUSD as number) * 100);
+      const aluminium = Math.round((aluminiumUSD as number) * 100);
       schema.openingInsideSurcharge = { wood, aluminium };
     } else if (action === 'setHingeUnitPrices') {
       const AUSD = parseNumber(req.body?.AUSD);
       const BUSD = parseNumber(req.body?.BUSD);
       if (!Number.isFinite(AUSD as number) || !Number.isFinite(BUSD as number)) return res.status(400).json({ error: 'AUSD and BUSD required (numbers)' });
-      const A = Math.round((AUSD as number) * MARKUP * 100);
-      const B = Math.round((BUSD as number) * MARKUP * 100);
+      const A = Math.round((AUSD as number) * 100);
+      const B = Math.round((BUSD as number) * 100);
       schema.hingeUnitPrices = { A, B };
     } else if (action === 'setHeightSurcharges') {
       const over2100USD = parseNumber(req.body?.over2100USD);
       const over2300USD = parseNumber(req.body?.over2300USD);
       if (!Number.isFinite(over2100USD as number) || !Number.isFinite(over2300USD as number)) return res.status(400).json({ error: 'over2100USD and over2300USD required (numbers)' });
-      const over2100 = Math.round((over2100USD as number) * MARKUP * 100);
-      const over2300 = Math.round((over2300USD as number) * MARKUP * 100);
+      const over2100 = Math.round((over2100USD as number) * 100);
+      const over2300 = Math.round((over2300USD as number) * 100);
       schema.heightSurcharges = { over2100, over2300 };
     }
 
@@ -2033,7 +2140,7 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
     const thresholdNum = parseNumber(threshold);
     const computeAmount = () => {
       if (Number.isFinite(amountCentsNum as number)) return Math.round(amountCentsNum as number);
-      if (Number.isFinite(costUSDNum as number)) return Math.round((costUSDNum as number) * MARKUP * 100);
+      if (Number.isFinite(costUSDNum as number)) return Math.round((costUSDNum as number) * 100);
       return undefined;
     };
 
@@ -2055,7 +2162,7 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
       // For depthMm we keep select UI but set control-level PER_UNIT strategy
       if (controlId === 'depthMm') {
         let rc = Number.isFinite(rateCentsNum as number) ? Math.round(rateCentsNum as number) : undefined;
-        if (rc === undefined && Number.isFinite(rateUSDPer10Num as number)) rc = Math.round((rateUSDPer10Num as number) * MARKUP * 100);
+        if (rc === undefined && Number.isFinite(rateUSDPer10Num as number)) rc = Math.round((rateUSDPer10Num as number) * 100);
         if (!Number.isFinite(rc as number)) return res.status(400).json({ error: 'Provide rateCents or rateUSDPer10 (number)' });
         control.type = control.type || 'select';
         control.step = 10;
@@ -2084,8 +2191,8 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
       const belowUSD = parseNumber(req.body?.belowUSD);
       const aboveUSD = parseNumber(req.body?.aboveUSD);
       if (!Number.isFinite(belowUSD as number) || !Number.isFinite(aboveUSD as number)) return res.status(400).json({ error: 'belowUSD and aboveUSD required (numbers)' });
-      const belowCents = Math.round((belowUSD as number) * MARKUP * 100);
-      const aboveCents = Math.round((aboveUSD as number) * MARKUP * 100);
+      const belowCents = Math.round((belowUSD as number) * 100);
+      const aboveCents = Math.round((aboveUSD as number) * 100);
       opt.priceStrategy = { type: 'TIERED_BY_CONTROL', controlId: refId, threshold: thr, belowAmountCents: belowCents, aboveAmountCents: aboveCents };
     } else if (action === 'setDisplayMultiplier' || action === 'setOpeningInsideSurcharge' || action === 'setHingeUnitPrices' || action === 'setHeightSurcharges') {
       // already handled above (root-level schema changes)

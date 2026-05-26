@@ -168,7 +168,8 @@
       "paint": "Painting",
       "profile": "Profile / Markup",
       "install": "Installation Type",
-      "hinges": "Hinges"
+      "hinges": "Hinges",
+      "glass": "Glass"
     },
     "controls": {
       "doorBlock": "Door Block",
@@ -211,7 +212,8 @@
       "magneticStopper": "Magnetic stopper",
       "dropDownThreshold": "Drop-down threshold",
       "paintFrameCasing": "Painting of frame and casing",
-      "hinges": "Hinges"
+      "hinges": "Hinges",
+      "glassType": "Glass"
     },
     "options": {
       "opening": {
@@ -253,6 +255,13 @@
         "black": "Black",
         "gold": "Gold",
         "silver": "Silver"
+      },
+      "glassType": {
+        "mirror_clear": "Clear mirror",
+        "mirror_graphite": "Graphite mirror",
+        "mirror_bronze": "Bronze mirror",
+        "lacobel_superwhite": "Lacobel super white",
+        "lacobel_black": "Lacobel black"
       },
       "finishCoat": {
         "pvc": "PVC"

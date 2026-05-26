@@ -2,6 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_ORIGIN, getAdminToken } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ChoiceOption, ParamSchemaJSON } from '@/types/paramSchema';
+
+type AdminSchema = ParamSchemaJSON & {
+  hingeUnitPrices?: Partial<Record<'A' | 'B', number>>;
+  openingInsideSurcharge?: Partial<Record<'wood' | 'aluminium', number>>;
+  heightSurcharges?: Partial<Record<'over2100' | 'over2300', number>>;
+};
 
 type SchemaResp = {
   categoryId: number;
@@ -9,8 +16,10 @@ type SchemaResp = {
   checksum: string;
   label: string;
   publishedAt: string | null;
-  schema: any;
+  schema: AdminSchema;
 };
+
+type MergePayload = Record<string, unknown>;
 
 async function fetchSchema() {
   const ts = Date.now();
@@ -19,7 +28,7 @@ async function fetchSchema() {
   return res.json() as Promise<SchemaResp>;
 }
 
-async function merge(payload: any) {
+async function merge(payload: MergePayload) {
   const token = getAdminToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -30,7 +39,7 @@ async function merge(payload: any) {
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Merge failed');
-  return res.json();
+  return res.json() as Promise<unknown>;
 }
 
 
@@ -43,42 +52,40 @@ export default function PricingAdmin() {
   });
 
   // Use a safe fallback schema while loading to keep hooks order stable
-  const s = schema.data?.schema ?? { currency: 'GBP', rounding: { mode: 'HALF_UP', minorUnit: 1 }, groups: [] };
+  const s: AdminSchema = schema.data?.schema ?? { currency: 'GBP', rounding: { mode: 'HALF_UP', minorUnit: 1 }, groups: [] };
 
   // Admin page only edits numeric schema values; no live preview
 
-  const getOptionAmountUSD = (groupId: string, controlId: string, optionId: string) => {
-    const g = s.groups.find((g: any) => g.id === groupId);
-    const c = g?.controls?.find((c: any) => c.id === controlId);
-    const o = c?.options?.find((o: any) => o.id === optionId);
-    const cents = o?.priceStrategy?.amountCents ?? 0;
-    // reverse from 1.3 markup for display convenience
-    return (cents / (1.3 * 100)).toFixed(2);
+  const getOption = (groupId: string, controlId: string, optionId: string): ChoiceOption | undefined => {
+    const control = s.groups.find((group) => group.id === groupId)?.controls.find((item) => item.id === controlId);
+    if (!control || !('options' in control)) return undefined;
+    return control.options.find((option) => option.id === optionId);
   };
 
-  const getThresholdUSD = (controlId: string) => {
-    const g = s.groups.find((g: any) => g.id === 'sizes');
-    const c = g?.controls?.find((c: any) => c.id === controlId);
-    const cents = c?.priceStrategy?.amountCents ?? 0;
-    return (cents / (1.3 * 100)).toFixed(2);
+  const getFixedOptionCents = (option?: ChoiceOption) => {
+    const strategy = option?.priceStrategy;
+    return strategy?.type === 'FIXED' ? strategy.amountCents : 0;
+  };
+
+  const getOptionAmountUSD = (groupId: string, controlId: string, optionId: string) => {
+    const o = getOption(groupId, controlId, optionId);
+    const cents = getFixedOptionCents(o);
+    return (cents / 100).toFixed(2);
   };
 
   const getRateUSDPer10 = () => {
-    const g = s.groups.find((g: any) => g.id === 'sizes');
-    const c = g?.controls?.find((c: any) => c.id === 'depthMm');
-    const cents = c?.priceStrategy?.rateCents ?? 0;
-    return (cents / (1.3 * 100)).toFixed(2);
+    const c = s.groups.find((group) => group.id === 'sizes')?.controls.find((item) => item.id === 'depthMm');
+    const cents = c?.priceStrategy?.type === 'PER_UNIT' ? c.priceStrategy.rateCents : 0;
+    return (cents / 100).toFixed(2);
   };
 
   const getTierUSD = (groupId: string, controlId: string, optionId: string, which: 'below'|'above') => {
-    const g = s.groups.find((g: any) => g.id === groupId);
-    const c = g?.controls?.find((c: any) => c.id === controlId);
-    const o = c?.options?.find((o: any) => o.id === optionId);
+    const o = getOption(groupId, controlId, optionId);
     const strat = o?.priceStrategy;
     const cents = strat?.type === 'TIERED_BY_CONTROL'
       ? (which === 'below' ? strat.belowAmountCents : strat.aboveAmountCents)
-      : (o?.priceStrategy?.amountCents ?? 0);
-    return (cents / (1.3 * 100)).toFixed(2);
+      : getFixedOptionCents(o);
+    return (cents / 100).toFixed(2);
   };
 
   // Render states after hooks to keep order consistent
@@ -91,24 +98,6 @@ export default function PricingAdmin() {
         <h1 className="text-3xl font-bold">Ціноутворення (Міжкімнатні)</h1>
         <span className="text-sm text-muted-foreground">Зміни застосовуються одразу</span>
       </div>
-
-      <Card>
-        <CardHeader><CardTitle>Коефіцієнт відображення</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="text-sm block mb-1">Поточне значення</label>
-            <Input value={String((schema.data?.schema?.displayMultiplier ?? 1).toFixed ? (schema.data?.schema?.displayMultiplier as any) : schema.data?.schema?.displayMultiplier ?? 1)} readOnly />
-          </div>
-          <div>
-            <label className="text-sm block mb-1">Встановити нове значення (наприклад, 1.25)</label>
-            <Input placeholder="1.30" onBlur={(e) => {
-              const m = Number(e.target.value);
-              if (!Number.isFinite(m) || m <= 0) return;
-              upsert.mutate({ action: 'setDisplayMultiplier', multiplier: m, groupId: 'sizes', controlId: 'heightMm' });
-            }} />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Removed old Door Block editor (not used in new customizer) */}
 

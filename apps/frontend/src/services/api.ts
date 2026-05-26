@@ -39,7 +39,9 @@ export const setAdminToken = (token?: string | null) => {
   try {
     if (!token) localStorage.removeItem(ADMIN_TOKEN_KEY);
     else localStorage.setItem(ADMIN_TOKEN_KEY, token);
-  } catch {}
+  } catch {
+    // localStorage can be unavailable in restricted browser contexts.
+  }
 };
 export const getAdminToken = () => {
   try { return localStorage.getItem(ADMIN_TOKEN_KEY) || null; } catch { return null; }
@@ -208,9 +210,11 @@ export const getInteriorSchema = async () => {
   }>;
 };
 
-export const getCategorySchema = async (slug: string) => {
+export const getCategorySchema = async (slug: string, productSlug?: string) => {
   const ts = Date.now();
-  const res = await fetch(`${API_URL}/categories/${slug}/schema?ts=${ts}`, { cache: 'no-store' as RequestCache });
+  const query = new URLSearchParams({ ts: String(ts) });
+  if (productSlug) query.set('productSlug', productSlug);
+  const res = await fetch(`${API_URL}/categories/${slug}/schema?${query.toString()}`, { cache: 'no-store' as RequestCache });
   if (!res.ok) throw new Error(`${slug} schema not available`);
   return res.json() as Promise<{
     categoryId: number;
@@ -317,15 +321,16 @@ export const authLogin = async (email: string, password: string) => {
   // Robustly parse token from the response body and persist it for Authorization header usage.
   try {
     const ct = res.headers.get('content-type') || '';
-    let body: any = {};
+    let body: unknown = {};
     if (ct.includes('application/json')) {
       body = await res.json();
     } else {
       const txt = await res.text();
       body = txt ? JSON.parse(txt) : {};
     }
-    if (body?.token && typeof body.token === 'string') {
-      setAdminToken(body.token);
+    const token = body && typeof body === 'object' && 'token' in body ? body.token : undefined;
+    if (typeof token === 'string') {
+      setAdminToken(token);
     }
   } catch {
     // Ignore parse errors. Cookie auth may still work if SameSite rules allow it,

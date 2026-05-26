@@ -370,7 +370,7 @@ export function priceQuote(
           groupId: hingesGroup!.id,
           groupLabel: hingesGroup!.label,
           selection: `${typeSel}×${countNum}`,
-          displayValue: `${typeSel} × ${countNum}`,
+          displayValue: `${opt.label} × ${countNum}`,
           strategy: opt.priceStrategy,
           deltaCents: deltaTotal,
         });

@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { createInteriorQuote, getProducts, priceInteriorQuote, resolveImageUrl, getCategorySchema } from "@/services/api";
-import { BooleanControl, Control, ParamSchemaJSON, RangeControl, SelectControl } from "@/types/paramSchema";
+import { BooleanControl, ParamSchemaJSON, RangeControl, SelectControl } from "@/types/paramSchema";
 
 const DEFAULT_PRODUCT_SLUG = "concealed-basic";
 
@@ -29,7 +29,11 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
 
-  const schemaQuery = useQuery({ queryKey: ["concealed", "schema"], queryFn: () => getCategorySchema("concealed") });
+  const schemaQuery = useQuery({
+    queryKey: ["concealed", "schema", productSlug],
+    queryFn: () => getCategorySchema("concealed", productSlug),
+    enabled: Boolean(productSlug),
+  });
   const productQuery = useQuery({
     queryKey: ["concealed", "product", productSlug],
     queryFn: async () => (await getProducts({ slug: productSlug }))[0],
@@ -51,6 +55,7 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
   const finishCtrl = findCtrl('finish', 'finishType') as SelectControl | undefined;
   const hingesCtrl = findCtrl('hinges', 'hinges') as SelectControl | undefined;
   const edgeCtrl = findCtrl('edge', 'edgeColor') as SelectControl | undefined;
+  const glassCtrl = findCtrl('glass', 'glassType') as SelectControl | undefined;
   const hardwareGroup = schema?.groups.find((g) => g.id === 'hardware');
 
   // Selections
@@ -76,8 +81,9 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
       ...(product?.doorType === 'BUDGET' ? { budget: true } : {}),
       // Edge default (Budget shows this explicitly)
       ...(edgeCtrl ? { edgeColor: edgeCtrl.defaultValue ?? edgeCtrl.options[0]?.id } : {}),
+      ...(glassCtrl ? { glassType: glassCtrl.defaultValue ?? glassCtrl.options[0]?.id } : {}),
       // Hardware booleans default false
-      ...((hardwareGroup?.controls || []).reduce((acc: any, c) => {
+      ...((hardwareGroup?.controls || []).reduce<Record<string, boolean>>((acc, c) => {
         if (c.type === 'boolean') acc[c.id] = (c as BooleanControl).defaultValue ?? false;
         return acc;
       }, {})),
@@ -142,6 +148,7 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
   const loading = schemaQuery.isLoading || productQuery.isLoading || !schema;
   const price = priceQuery.data;
   const currency = price?.currency ?? 'UAH';
+  const priceError = priceQuery.error instanceof Error ? priceQuery.error.message : t('customizer.calcError');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '' });
 
@@ -191,8 +198,9 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <div className="p-4 bg-primary/5 rounded-lg space-y-3">
                   <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{t('common.basePrice')}</span><span className="font-medium">{formatCurrency(price?.basePriceCents ?? product.basePriceCents, currency, i18n.language)}</span></div>
                   <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{t('common.adjustments')}</span><span className="font-medium">{price ? formatCurrency(price.adjustmentsCents, currency, i18n.language) : "--"}</span></div>
-                  <div className="flex items-center justify-between border-t border-primary/20 pt-3"><span className="text-sm text-muted-foreground">{t('common.total')}</span><Badge variant="secondary" className="bg-accent text-accent-foreground"><Calculator className="w-3 h-3 mr-1" />{price ? formatCurrency(price.totalPriceCents, currency, i18n.language) : t('customizer.updating')}</Badge></div>
+                  <div className="flex items-center justify-between border-t border-primary/20 pt-3"><span className="text-sm text-muted-foreground">{t('common.total')}</span><Badge variant="secondary" className="bg-accent text-accent-foreground"><Calculator className="w-3 h-3 mr-1" />{price ? formatCurrency(price.totalPriceCents, currency, i18n.language) : priceQuery.isError ? t('customizer.calcError') : t('customizer.updating')}</Badge></div>
                   {priceQuery.isFetching && (<div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> {t('customizer.updating')}</div>)}
+                  {priceQuery.isError && (<p className="text-xs text-destructive">{priceError}</p>)}
                   <p className="text-xs text-muted-foreground">{t('common.priceNote')}</p>
                 </div>
               </CardContent>
@@ -203,9 +211,9 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardHeader><CardTitle>{t('customizer.priceBreakdown')}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   {(() => {
-                    const allowedGroups = new Set(['sizes','construction','install','hardware','hinges','opening']);
+                    const allowedGroups = new Set(['sizes','construction','install','hardware','hinges','opening','edge','glass']);
                     // Exclude 'paintFrameCasing' from breakdown (not used)
-                    const allowedControls = new Set(['heightMm','frame','installType','magneticLock','magneticStopper','dropDownThreshold','hinges','opening']);
+                    const allowedControls = new Set(['heightMm','frame','installType','magneticLock','magneticStopper','dropDownThreshold','hinges','opening','edgeColor','glassType']);
                     const filtered = price.breakdown.filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
                     // Merge duplicate controls (e.g., heightMm may appear twice for >2100 and >2300 surcharges)
                     const merged = new Map<string, typeof filtered[number]>();
@@ -283,7 +291,7 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardContent className="space-y-3">
                   <Label>{t('schema.controls.frame', { defaultValue: frameCtrl.label })}</Label>
                   <RadioGroup value={(sel.frame as string) ?? ''} onValueChange={(v) => setVal('frame', v)}>
-                    {(product?.doorType === 'BUDGET' ? frameCtrl.options.filter((o) => o.id === 'wood') : frameCtrl.options).map((o) => (
+                    {frameCtrl.options.map((o) => (
                       <div key={o.id} className="flex items-center space-x-3 opacity-100">
                         <RadioGroupItem value={o.id} id={`frame-${o.id}`} disabled={o.id === 'wood' && timberDisabled} />
                         <Label htmlFor={`frame-${o.id}`} className={o.id === 'wood' && timberDisabled ? 'text-gray-400' : ''}>{t(`schema.options.frame.${o.id}`, { defaultValue: o.label })}</Label>
@@ -302,7 +310,7 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardContent className="space-y-3">
                   <Label>{t('schema.controls.installType', { defaultValue: installCtrl.label })}</Label>
                   <RadioGroup value={(sel.installType as string) ?? ''} onValueChange={(v) => setVal('installType', v)}>
-                    {(product?.doorType === 'BUDGET' ? installCtrl.options.filter((o) => o.id === 'flushPlaster') : installCtrl.options).map((o) => (
+                    {installCtrl.options.map((o) => (
                       <div key={o.id} className="flex items-center space-x-3">
                         <RadioGroupItem value={o.id} id={`install-${o.id}`} />
                         <Label htmlFor={`install-${o.id}`}>{t(`schema.options.installType.${o.id}`, { defaultValue: o.label })}</Label>
@@ -367,6 +375,24 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
               </Card>
             )}
 
+            {/* Glass */}
+            {glassCtrl && (
+              <Card>
+                <CardHeader><CardTitle>{t('schema.groups.glass', { defaultValue: 'Скло' })}</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <Label>{t('schema.controls.glassType', { defaultValue: glassCtrl.label })}</Label>
+                  <RadioGroup value={(sel.glassType as string) ?? ''} onValueChange={(v) => setVal('glassType', v)}>
+                    {glassCtrl.options.map((o) => (
+                      <div key={o.id} className="flex items-center space-x-3">
+                        <RadioGroupItem value={o.id} id={`glass-${o.id}`} />
+                        <Label htmlFor={`glass-${o.id}`}>{t(`schema.options.glassType.${o.id}`, { defaultValue: o.label })}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Hinges */}
             {hingesCtrl && (
               <Card>
@@ -375,19 +401,19 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                   <Label>{t('schema.controls.hinges', { defaultValue: hingesCtrl.label ?? 'Hinges' })}</Label>
                   {product?.doorType === 'BUDGET' ? (
                     <RadioGroup value={String(sel.hinges ?? hingesCtrl.defaultValue ?? '3')} onValueChange={(v) => setVal('hinges', v)}>
-                      {['2','3','4'].map((id) => (
-                        <div key={id} className="flex items-center space-x-3">
-                          <RadioGroupItem value={id} id={`hinges-${id}`} />
-                          <Label htmlFor={`hinges-${id}`}>{`${id}A`}</Label>
+                      {hingesCtrl.options.map((o) => (
+                        <div key={o.id} className="flex items-center space-x-3">
+                          <RadioGroupItem value={o.id} id={`hinges-${o.id}`} />
+                          <Label htmlFor={`hinges-${o.id}`}>{o.label}</Label>
                         </div>
                       ))}
                     </RadioGroup>
                   ) : (
                     <RadioGroup value={autoHingesId} onValueChange={() => {}}>
-                      {['3','4','5'].map((id) => (
-                        <div key={id} className="flex items-center space-x-3">
-                          <RadioGroupItem value={id} id={`hinges-${id}`} disabled />
-                          <Label htmlFor={`hinges-${id}`}>{id === '3' ? '3A' : id === '4' ? '4B' : '5B'} (автовибір)</Label>
+                      {hingesCtrl.options.map((o) => (
+                        <div key={o.id} className="flex items-center space-x-3">
+                          <RadioGroupItem value={o.id} id={`hinges-${o.id}`} disabled />
+                          <Label htmlFor={`hinges-${o.id}`}>{o.id === '3' ? '3A' : o.id === '4' ? '4B' : '5B'} (автовибір)</Label>
                         </div>
                       ))}
                     </RadioGroup>

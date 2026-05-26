@@ -24,6 +24,13 @@ export type PriceStrategy =
       compare: "GT" | "GTE" | "LT" | "LTE";
       threshold: number;
       amountCents: number;
+    }
+  | {
+      type: "TIERED_BY_CONTROL";
+      controlId: string;
+      threshold: number;
+      belowAmountCents: number;
+      aboveAmountCents: number;
     };
 
 export type ControlType = "select" | "radio" | "boolean" | "range";

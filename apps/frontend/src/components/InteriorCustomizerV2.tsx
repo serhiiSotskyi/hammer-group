@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrencyByLang } from '@/lib/format';
 import { createInteriorQuote, getInteriorSchema, getProducts, priceInteriorQuote, resolveImageUrl } from "@/services/api";
-import { ParamSchemaJSON, SelectControl } from "@/types/paramSchema";
+import { ParamSchemaJSON, PricingBreakdownEntry, SelectControl } from "@/types/paramSchema";
 
 const DEFAULT_PRODUCT_SLUG = "classic-oak";
 
@@ -96,12 +96,13 @@ export default function InteriorCustomizerV2({ productSlug = DEFAULT_PRODUCT_SLU
   });
 
   // Define values and hooks used later BEFORE any early returns to keep hook order stable
-  const currency = 'UAH';
   const price = priceQuery.data;
+  const currency = price?.currency ?? 'UAH';
+  const priceError = priceQuery.error instanceof Error ? priceQuery.error.message : t('customizer.calcError');
   const displayedLines = useMemo(() => {
     if (!price?.breakdown) return [] as typeof price.breakdown;
     const allowed = new Set(['heightMm','widthMm','depthMm','opening','frameType','lockType','casingOuter','casingInner','hinges','stopper','edgeColor','finishCoat']);
-    const reduced: Record<string, (typeof price.breakdown)[number]> = {} as any;
+    const reduced: Record<string, PricingBreakdownEntry> = {};
     for (const line of price.breakdown) {
       if (!allowed.has(line.controlId)) continue;
       const prev = reduced[line.controlId];
@@ -111,8 +112,7 @@ export default function InteriorCustomizerV2({ productSlug = DEFAULT_PRODUCT_SLU
       if (curAbs > prevAbs) reduced[line.controlId] = line;
     }
     return Object.values(reduced);
-  }, [price?.breakdown]);
-  const uiAdjustmentsCents = useMemo(() => displayedLines.reduce((s, l) => s + l.deltaCents, 0), [displayedLines]);
+  }, [price]);
 
   if (productQuery.isLoading || schemaQuery.isLoading) {
     return (
@@ -206,8 +206,9 @@ export default function InteriorCustomizerV2({ productSlug = DEFAULT_PRODUCT_SLU
                 </div>
                 <div className="p-4 bg-primary/5 rounded-lg space-y-3">
                   <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{t('common.basePrice')}</span><span className="font-medium">{formatCurrencyByLang(price?.basePriceCents ?? product.basePriceCents, currency, i18n.language)}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{t('common.adjustments')}</span><span className="font-medium">{price ? formatCurrencyByLang(uiAdjustmentsCents, currency, i18n.language) : "--"}</span></div>
-                  <div className="flex items-center justify-between border-t border-primary/20 pt-3"><span className="text-sm text-muted-foreground">{t('common.total')}</span><span className="font-semibold">{price ? formatCurrencyByLang((price.basePriceCents ?? 0) + uiAdjustmentsCents, currency, i18n.language) : t('customizer.updating')}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{t('common.adjustments')}</span><span className="font-medium">{price ? formatCurrencyByLang(price.adjustmentsCents, currency, i18n.language) : "--"}</span></div>
+                  <div className="flex items-center justify-between border-t border-primary/20 pt-3"><span className="text-sm text-muted-foreground">{t('common.total')}</span><span className="font-semibold">{price ? formatCurrencyByLang(price.totalPriceCents, currency, i18n.language) : priceQuery.isError ? t('customizer.calcError') : t('customizer.updating')}</span></div>
+                  {priceQuery.isError && (<p className="text-xs text-destructive">{priceError}</p>)}
                   <p className="text-xs text-muted-foreground">{t('common.priceNote')}</p>
                 </div>
               </CardContent>

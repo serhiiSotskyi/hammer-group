@@ -167,7 +167,8 @@
       "paint": "Фарбування",
       "profile": "Профіль / Націнка",
       "install": "Тип встановлення",
-      "hinges": "Петлі"
+      "hinges": "Петлі",
+      "glass": "Скло"
     },
     "controls": {
       "doorBlock": "Двірний блок",
@@ -210,7 +211,8 @@
       "magneticStopper": "Стопор магнітний",
       "dropDownThreshold": "Випадаючий поріг",
       "paintFrameCasing": "Фарбування короба та рами",
-      "hinges": "Петлі"
+      "hinges": "Петлі",
+      "glassType": "Скло"
     },
     "options": {
       "opening": {
@@ -252,6 +254,13 @@
         "black": "Чорний",
         "gold": "Золотий",
         "silver": "Срібний"
+      },
+      "glassType": {
+        "mirror_clear": "дзеркало звичайне",
+        "mirror_graphite": "дзеркало графіт",
+        "mirror_bronze": "дзеркало бронза",
+        "lacobel_superwhite": "лакобель супербілий",
+        "lacobel_black": "лакобель чорний"
       },
       "finishCoat": {
         "pvc": "ПВХ"

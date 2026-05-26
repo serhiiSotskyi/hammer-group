@@ -2,8 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_ORIGIN, getAdminToken } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ChoiceOption, ParamSchemaJSON } from '@/types/paramSchema';
 
-type SchemaResp = { checksum: string; schema: any };
+type ConcealedSchema = ParamSchemaJSON & {
+  hingeUnitPrices?: Partial<Record<'A' | 'B', number>>;
+  openingInsideSurcharge?: Partial<Record<'wood' | 'aluminium', number>>;
+  heightSurcharges?: Partial<Record<'over2100' | 'over2300', number>>;
+};
+
+type SchemaResp = { checksum: string; schema: ConcealedSchema };
+type MergePayload = Record<string, unknown>;
 
 async function fetchSchema() {
   const ts = Date.now();
@@ -12,7 +20,7 @@ async function fetchSchema() {
   return res.json() as Promise<SchemaResp>;
 }
 
-async function merge(payload: any) {
+async function merge(payload: MergePayload) {
   const token = getAdminToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -20,7 +28,7 @@ async function merge(payload: any) {
     method: 'POST', headers, body: JSON.stringify(payload), credentials: 'include',
   });
   if (!res.ok) throw new Error('Save failed');
-  return res.json();
+  return res.json() as Promise<unknown>;
 }
 
 export default function PricingConcealed() {
@@ -32,49 +40,45 @@ export default function PricingConcealed() {
   if (schema.error) return <p className="text-red-600">Не вдалося завантажити</p>;
 
   const s = schema.data?.schema;
+  if (!s) return <p className="text-red-600">Не вдалося завантажити</p>;
 
-  const getMultiplier = () => {
-    const m = s?.displayMultiplier;
-    return Number.isFinite(m) && m > 0 ? String(m) : '';
+  const getOption = (groupId: string, controlId: string, optionId: string): ChoiceOption | undefined => {
+    const control = s.groups.find((group) => group.id === groupId)?.controls.find((item) => item.id === controlId);
+    if (!control || !('options' in control)) return undefined;
+    return control.options.find((option) => option.id === optionId);
+  };
+
+  const getFixedOptionCents = (option?: ChoiceOption) => {
+    const strategy = option?.priceStrategy;
+    return strategy?.type === 'FIXED' ? strategy.amountCents : 0;
   };
 
   const getTierUSD = (groupId: string, controlId: string, optionId: string, which: 'below'|'above') => {
-    const g = s.groups.find((g: any) => g.id === groupId);
-    const c = g?.controls?.find((c: any) => c.id === controlId);
-    const o = c?.options?.find((o: any) => o.id === optionId);
+    const o = getOption(groupId, controlId, optionId);
     const strat = o?.priceStrategy;
     const cents = strat?.type === 'TIERED_BY_CONTROL' ? (which === 'below' ? strat.belowAmountCents : strat.aboveAmountCents) : 0;
-    return (cents / (1.3 * 100)).toFixed(2);
-  };
-
-  const getThresholdUSD = () => {
-    const g = s.groups.find((g: any) => g.id === 'sizes');
-    const c = g?.controls?.find((c: any) => c.id === 'heightMm');
-    const cents = c?.priceStrategy?.amountCents ?? 0;
-    return (cents / (1.3 * 100)).toFixed(2);
+    return (cents / 100).toFixed(2);
   };
 
   const getHingeUnitUSD = (type: 'A'|'B') => {
     const cents = s?.hingeUnitPrices?.[type] ?? 0;
-    return (cents / (1.3*100)).toFixed(2);
+    return (cents / 100).toFixed(2);
   };
 
   const getOpeningInsideUSD = (mat: 'wood'|'aluminium') => {
     const cents = s?.openingInsideSurcharge?.[mat] ?? 0;
-    return (cents / (1.3*100)).toFixed(2);
+    return (cents / 100).toFixed(2);
   };
 
   const getHeightSurchargeUSD = (which: 'over2100'|'over2300') => {
     const cents = s?.heightSurcharges?.[which] ?? 0;
-    return (cents / (1.3*100)).toFixed(2);
+    return (cents / 100).toFixed(2);
   };
 
   const getOptionUSD = (groupId: string, controlId: string, optionId: string) => {
-    const g = s.groups.find((g: any) => g.id === groupId);
-    const c = g?.controls?.find((c: any) => c.id === controlId);
-    const o = c?.options?.find((o: any) => o.id === optionId);
-    const cents = o?.priceStrategy?.amountCents ?? 0;
-    return (cents / (1.3*100)).toFixed(2);
+    const o = getOption(groupId, controlId, optionId);
+    const cents = getFixedOptionCents(o);
+    return (cents / 100).toFixed(2);
   };
 
   return (
@@ -83,16 +87,6 @@ export default function PricingConcealed() {
         <h1 className="text-3xl font-bold">Ціноутворення (Приховані)</h1>
         <span className="text-sm text-muted-foreground">Зміни застосовуються одразу</span>
       </div>
-
-      <Card>
-        <CardHeader><CardTitle>Множник відображення (лише на опції)</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="text-sm block mb-1">Multiplier</label>
-            <Input defaultValue={getMultiplier()} placeholder="e.g., 1.3" onBlur={(e) => upsert.mutate({ action:'setDisplayMultiplier', multiplier: Number(e.target.value) })} />
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader><CardTitle>Полотно дверей (панель)</CardTitle></CardHeader>
@@ -197,6 +191,24 @@ export default function PricingConcealed() {
             <label className="text-sm block mb-1">Срібний (USD)</label>
             <Input defaultValue={getOptionUSD('edge','edgeColor','silver')} onBlur={(e) => upsert.mutate({ action:'upsertOption', groupId:'edge', controlId:'edgeColor', optionId:'silver', costUSD:Number(e.target.value) })} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Скло</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            ['mirror_clear', 'дзеркало звичайне'],
+            ['mirror_graphite', 'дзеркало графіт'],
+            ['mirror_bronze', 'дзеркало бронза'],
+            ['lacobel_superwhite', 'лакобель супербілий'],
+            ['lacobel_black', 'лакобель чорний'],
+          ].map(([id, label]) => (
+            <div key={id}>
+              <label className="text-sm block mb-1">{label} (USD)</label>
+              <Input defaultValue={getOptionUSD('glass','glassType',id)} onBlur={(e) => upsert.mutate({ action:'upsertOption', groupId:'glass', controlId:'glassType', optionId:id, costUSD:Number(e.target.value) })} />
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>
