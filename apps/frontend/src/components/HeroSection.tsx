@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import heroImage from '@/assets/hero-entryway.jpeg';
+import heroImage from '@/assets/hero-entryway-light.jpg';
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const { t } = useTranslation();
+  const heroTitle = t('hero.title1');
+  const isBrandTitle = heroTitle.trim().toLowerCase() === 'hammer group';
 
   useEffect(() => {
     setIsVisible(true);
@@ -13,7 +15,7 @@ const HeroSection = () => {
 
   return (
     <section id="home" className="relative min-h-screen flex items-start md:items-center justify-center overflow-hidden pt-24 pb-16 md:py-0">
-      {/* Background Image with Overlay */}
+      {/* Background Image */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 hero-scrim z-10"></div>
         <img 
@@ -27,12 +29,12 @@ const HeroSection = () => {
       <div className={`hero-copy relative z-20 text-center max-w-4xl mx-auto px-6 transition-all duration-1000 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}>
-        <h1 className="hero-title text-4xl sm:text-5xl md:text-7xl font-playfair font-bold text-white mb-4 md:mb-6 uppercase leading-tight">
-          {t('hero.title1')}
+        <h1 className={`hero-title text-4xl sm:text-5xl md:text-7xl ${isBrandTitle ? 'hero-brand-title' : 'font-playfair'} font-bold text-white mb-4 md:mb-6 uppercase leading-tight`}>
+          {heroTitle}
           {/* <span className="block hero-text">{t('hero.title2')}</span> */}
         </h1>
         
-        <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed whitespace-pre-line">
           {t('hero.sub')}
         </p>
 
