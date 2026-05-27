@@ -14,24 +14,26 @@ export default function InteriorCollectionsPage() {
   const collections: Collection[] = data ?? [];
 
   return (
-    <div className="p-10">
-      <h1 className="text-4xl font-bold mb-8">{t('pages.interiorTitle')}</h1>
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <h1 className="text-2xl sm:text-4xl font-bold mb-6 sm:mb-8">{t('pages.interiorTitle')}</h1>
       {isLoading && <p>Завантаження…</p>}
       {error && <p className="text-red-500">Не вдалося завантажити колекції</p>}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto">
         {collections.map((c) => (
-          <Link key={c.slug} to={`/interior-doors/${c.slug}`}>
+          <Link key={c.slug} to={`/interior-doors/${c.slug}`} className="block">
             <Card className="overflow-hidden hover:shadow-lg transition">
-              <img
-                src={resolveImageUrl(c.imageUrl) || '/placeholder.svg'}
-                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/placeholder.svg'; }}
-                alt={c.name}
-                className="w-full h-72 object-cover"
-              />
-              <CardHeader>
+              <div className="aspect-[16/7] lg:aspect-[16/8] overflow-hidden">
+                <img
+                  src={resolveImageUrl(c.imageUrl) || '/placeholder.svg'}
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/placeholder.svg'; }}
+                  alt={c.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <CardHeader className="p-5 sm:p-6">
                 <CardTitle className="text-2xl">{c.name}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-5 sm:px-6 pb-5 sm:pb-6">
                 <p className="text-muted-foreground">Переглянути колекцію {c.name.toLowerCase()}</p>
               </CardContent>
             </Card>
