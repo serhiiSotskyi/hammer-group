@@ -34,15 +34,15 @@ export default function CabinetFurnitureForm() {
   };
 
   return (
-    <section className="py-12">
-      <div className="container mx-auto px-6">
+    <section className="py-0 sm:py-6">
+      <div className="mx-auto max-w-2xl px-0">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-playfair">{t('nav.furniture')}</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-2xl sm:text-3xl font-playfair">{t('nav.furniture')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">{t('contact.name')}</label>
                   <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />

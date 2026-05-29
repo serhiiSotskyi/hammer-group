@@ -33,14 +33,14 @@ export default function CabinetFurniturePage() {
   const categoryLabel = (projectType: PortfolioProjectType) => projectType === "DOORS" ? "Двері" : "Меблі";
 
   return (
-    <div className="p-10">
-      <h1 className="text-4xl font-bold mb-6">{t('nav.furniture')}</h1>
-      <p className="text-lg text-gray-700 mb-10">{t('collections.cards.furniture.description')}</p>
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <h1 className="text-3xl sm:text-4xl font-bold mb-4 sm:mb-6">{t('nav.furniture')}</h1>
+      <p className="text-base sm:text-lg text-gray-700 mb-6 sm:mb-10">{t('collections.cards.furniture.description')}</p>
 
       {/* Furniture Request Form (no contact info panel) */}
-      <div className="bg-muted rounded-lg p-8">
-        <h2 className="text-3xl font-bold mb-6">{t('contact.send')}</h2>
-        <p className="text-muted-foreground mb-6">{t('contact.subtitle')}</p>
+      <div className="bg-muted rounded-lg px-3 py-5 sm:p-8">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">{t('contact.send')}</h2>
+        <p className="text-sm sm:text-base text-muted-foreground mb-5 sm:mb-6">{t('contact.subtitle')}</p>
         <CabinetFurnitureForm />
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
