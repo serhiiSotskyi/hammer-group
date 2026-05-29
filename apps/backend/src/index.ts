@@ -241,6 +241,13 @@ const GLASS_TYPE_OPTIONS = [
   { id: 'lacobel_black', label: 'лакобель чорний' },
 ];
 
+const CONCEALED_HARDWARE_TOGGLES = [
+  { id: 'magneticLock', label: 'Магнітний замок' },
+  { id: 'magneticStopper', label: 'Магнітний стопор' },
+  { id: 'dropDownThreshold', label: 'Випадаючий поріг' },
+  { id: 'paintFrameCasing', label: 'Фарбування короба та рами' },
+];
+
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
@@ -607,13 +614,18 @@ function normalizeSchema(slug: string, schema: any): ParamSchemaJSON {
       // Restrict hardware to exactly four toggles with friendly labels
       let hardware = schema.groups?.find((g: any) => g.id === 'hardware');
       if (!hardware) { hardware = { id: 'hardware', label: 'Hardware', controls: [] }; schema.groups.push(hardware); }
-      const mkBool = (id: string, label: string) => ({ id, type: 'boolean', label, defaultValue: false, priceStrategy: { type: 'FIXED', amountCents: 0 } });
-      hardware.controls = [
-        mkBool('magneticLock', 'Магнітний замок'),
-        mkBool('magneticStopper', 'Магнітний стопор'),
-        mkBool('dropDownThreshold', 'Випадаючий поріг'),
-        mkBool('paintFrameCasing', 'Фарбування короба та рами'),
-      ];
+      const existingControls = Array.isArray(hardware.controls) ? hardware.controls : [];
+      const mkBool = (id: string, label: string) => {
+        const existing = existingControls.find((c: any) => c.id === id);
+        return {
+          id,
+          type: 'boolean',
+          label,
+          defaultValue: false,
+          priceStrategy: existing?.priceStrategy || { type: 'FIXED', amountCents: 0 },
+        };
+      };
+      hardware.controls = CONCEALED_HARDWARE_TOGGLES.map(({ id, label }) => mkBool(id, label));
     }
   } catch (_) {}
   return schema as ParamSchemaJSON;
@@ -2057,10 +2069,16 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
     const requireGC = () => requireId('groupId', groupId) && requireId('controlId', controlId);
     const noGroupControl = new Set(['setDisplayMultiplier','setOpeningInsideSurcharge','setHingeUnitPrices','setHeightSurcharges']);
     const needsGroupControl = (act: string) => !noGroupControl.has(act);
-    if (action === 'upsertOption' || action === 'upsertOptionTiered' || action === 'updateRange' || noGroupControl.has(action)) {
+    const concealedHardwareToggle = CONCEALED_HARDWARE_TOGGLES.find((item) => item.id === controlId);
+    if (action === 'upsertOption' || action === 'upsertOptionTiered' || action === 'updateRange' || action === 'setControlFixedPrice' || noGroupControl.has(action)) {
       if (needsGroupControl(action) && !requireGC()) return;
     } else {
       return res.status(400).json({ error: 'Unsupported action' });
+    }
+    if (action === 'setControlFixedPrice') {
+      if (slug !== 'concealed' || groupId !== 'hardware' || !concealedHardwareToggle) {
+        return res.status(400).json({ error: 'Unsupported control for setControlFixedPrice' });
+      }
     }
 
     const category = await prisma.category.findUnique({ where: { slug }, include: { activeSchema: true } });
@@ -2125,10 +2143,19 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
         group = { id: groupId, label: groupId, controls: [] };
         schema.groups.push(group);
       }
+      group.controls = Array.isArray(group.controls) ? group.controls : [];
       control = group.controls.find((c: any) => c.id === controlId);
       if (!control) {
         if (typeof controlId !== 'string' || !controlId.trim()) return res.status(400).json({ error: 'controlId required' });
-        control = { id: controlId, type: 'radio', label: controlId, options: [] };
+        control = action === 'setControlFixedPrice'
+          ? {
+              id: controlId,
+              type: 'boolean',
+              label: concealedHardwareToggle?.label ?? controlId,
+              defaultValue: false,
+              priceStrategy: { type: 'FIXED', amountCents: 0 },
+            }
+          : { id: controlId, type: 'radio', label: controlId, options: [] };
         group.controls.push(control);
       }
     }
@@ -2196,6 +2223,17 @@ app.post('/api/admin/schema/:slug/merge', authenticate, requireAdmin, async (req
       opt.priceStrategy = { type: 'TIERED_BY_CONTROL', controlId: refId, threshold: thr, belowAmountCents: belowCents, aboveAmountCents: aboveCents };
     } else if (action === 'setDisplayMultiplier' || action === 'setOpeningInsideSurcharge' || action === 'setHingeUnitPrices' || action === 'setHeightSurcharges') {
       // already handled above (root-level schema changes)
+    } else if (action === 'setControlFixedPrice') {
+      if (!Number.isFinite(costUSDNum as number) || (costUSDNum as number) < 0) {
+        return res.status(400).json({ error: 'Provide costUSD (non-negative number)' });
+      }
+      if (control.type !== 'boolean') {
+        return res.status(400).json({ error: 'setControlFixedPrice requires a boolean control' });
+      }
+      const amt = Math.round((costUSDNum as number) * 100);
+      control.priceStrategy = { type: 'FIXED', amountCents: amt };
+      control.defaultValue = control.defaultValue ?? false;
+      control.label = concealedHardwareToggle?.label ?? control.label;
     } else {
       return res.status(400).json({ error: 'Unsupported action' });
     }

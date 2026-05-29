@@ -212,8 +212,7 @@ export default function ConcealedCustomizer({ productSlug = DEFAULT_PRODUCT_SLUG
                 <CardContent className="space-y-3">
                   {(() => {
                     const allowedGroups = new Set(['sizes','construction','install','hardware','hinges','opening','edge','glass']);
-                    // Exclude 'paintFrameCasing' from breakdown (not used)
-                    const allowedControls = new Set(['heightMm','frame','installType','magneticLock','magneticStopper','dropDownThreshold','hinges','opening','edgeColor','glassType']);
+                    const allowedControls = new Set(['heightMm','frame','installType','magneticLock','magneticStopper','dropDownThreshold','paintFrameCasing','hinges','opening','edgeColor','glassType']);
                     const filtered = price.breakdown.filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
                     // Merge duplicate controls (e.g., heightMm may appear twice for >2100 and >2300 surcharges)
                     const merged = new Map<string, typeof filtered[number]>();

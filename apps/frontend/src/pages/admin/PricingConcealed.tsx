@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_ORIGIN, getAdminToken } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChoiceOption, ParamSchemaJSON } from '@/types/paramSchema';
+import { BooleanControl, ChoiceOption, ParamSchemaJSON } from '@/types/paramSchema';
 
 type ConcealedSchema = ParamSchemaJSON & {
   hingeUnitPrices?: Partial<Record<'A' | 'B', number>>;
@@ -12,6 +12,13 @@ type ConcealedSchema = ParamSchemaJSON & {
 
 type SchemaResp = { checksum: string; schema: ConcealedSchema };
 type MergePayload = Record<string, unknown>;
+
+const hardwareTogglePrices = [
+  ['magneticLock', 'Замок магнітний'],
+  ['magneticStopper', 'Стопор магнітний'],
+  ['dropDownThreshold', 'Випадаючий поріг'],
+  ['paintFrameCasing', 'Фарбування короба та рами'],
+] as const;
 
 async function fetchSchema() {
   const ts = Date.now();
@@ -42,8 +49,12 @@ export default function PricingConcealed() {
   const s = schema.data?.schema;
   if (!s) return <p className="text-red-600">Не вдалося завантажити</p>;
 
+  const getControl = (groupId: string, controlId: string) => {
+    return s.groups.find((group) => group.id === groupId)?.controls.find((item) => item.id === controlId);
+  };
+
   const getOption = (groupId: string, controlId: string, optionId: string): ChoiceOption | undefined => {
-    const control = s.groups.find((group) => group.id === groupId)?.controls.find((item) => item.id === controlId);
+    const control = getControl(groupId, controlId);
     if (!control || !('options' in control)) return undefined;
     return control.options.find((option) => option.id === optionId);
   };
@@ -78,6 +89,13 @@ export default function PricingConcealed() {
   const getOptionUSD = (groupId: string, controlId: string, optionId: string) => {
     const o = getOption(groupId, controlId, optionId);
     const cents = getFixedOptionCents(o);
+    return (cents / 100).toFixed(2);
+  };
+
+  const getControlUSD = (groupId: string, controlId: string) => {
+    const control = getControl(groupId, controlId) as BooleanControl | undefined;
+    const strategy = control?.priceStrategy;
+    const cents = strategy?.type === 'FIXED' ? strategy.amountCents : 0;
     return (cents / 100).toFixed(2);
   };
 
@@ -175,6 +193,18 @@ export default function PricingConcealed() {
       </Card>
 
       {/* Budget hinges use unit price A × count; no totals needed */}
+
+      <Card>
+        <CardHeader><CardTitle>Фурнітура</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {hardwareTogglePrices.map(([id, label]) => (
+            <div key={id}>
+              <label className="text-sm block mb-1">{label} (USD)</label>
+              <Input defaultValue={getControlUSD('hardware', id)} onBlur={(e) => upsert.mutate({ action:'setControlFixedPrice', groupId:'hardware', controlId:id, costUSD:Number(e.target.value) })} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Бюджетні (Universal): Торець</CardTitle></CardHeader>
