@@ -31,11 +31,38 @@ export default function CabinetFurniturePage() {
   const [activeFilter, setActiveFilter] = useState<"ALL" | PortfolioProjectType>("ALL");
   const filteredPortfolio = (portfolio ?? []).filter((item) => activeFilter === "ALL" || item.projectType === activeFilter);
   const categoryLabel = (projectType: PortfolioProjectType) => projectType === "DOORS" ? "Двері" : "Меблі";
+  const furnitureServices = [
+    {
+      title: "Шафи та гардеробні",
+      text: "Вбудовані шафи, системи зберігання, гардеробні та меблі для ніш під точні розміри.",
+    },
+    {
+      title: "Меблі для житла",
+      text: "Рішення для передпокоїв, спалень, віталень, робочих зон та інших просторів у квартирі чи будинку.",
+    },
+    {
+      title: "Комерційні проєкти",
+      text: "Корпусні меблі для офісів, салонів, магазинів і закладів із погодженням матеріалів та фурнітури.",
+    },
+  ];
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      <h1 className="text-3xl sm:text-4xl font-bold mb-4 sm:mb-6">{t('nav.furniture')}</h1>
-      <p className="text-base sm:text-lg text-gray-700 mb-6 sm:mb-10">{t('collections.cards.furniture.description')}</p>
+      <div className="max-w-4xl mb-8 sm:mb-10">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-4">Корпусні меблі на замовлення в Одесі</h1>
+        <p className="text-base sm:text-lg text-muted-foreground">
+          Hammer Group проєктує та виготовляє корпусні меблі на замовлення для житлових і комерційних просторів. Ми працюємо з індивідуальними розмірами, допомагаємо підібрати матеріали, фурнітуру та оздоблення, виконуємо замір і готуємо прорахунок перед запуском у виробництво.
+        </p>
+      </div>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 sm:mb-10" aria-label="Напрями виготовлення корпусних меблів">
+        {furnitureServices.map((item) => (
+          <div key={item.title} className="border rounded-lg p-5 bg-background">
+            <h2 className="font-semibold text-lg mb-2">{item.title}</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">{item.text}</p>
+          </div>
+        ))}
+      </section>
 
       {/* Furniture Request Form (no contact info panel) */}
       <div className="bg-muted rounded-lg px-3 py-5 sm:p-8">
@@ -92,7 +119,7 @@ export default function CabinetFurniturePage() {
           >
             <div className="relative">
               <img
-                src={resolveImageUrl((project as any).coverUrl || (project as any).imageUrl) || luxuryDoor}
+                src={resolveImageUrl(project.coverUrl) || luxuryDoor}
                 alt={project.name}
                 className="w-full aspect-[4/3] object-cover transform group-hover:scale-105 transition"
                 onError={(e) => {

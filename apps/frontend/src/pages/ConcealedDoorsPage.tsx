@@ -16,17 +16,32 @@ export default function ConcealedDoorsPage() {
     queryKey: ["concealed-doors"],
     queryFn: () => getProducts({ categorySlug: "concealed" }),
   });
-
-  if (isLoading) return <p className="p-10">{t('customizer.updating')}</p>;
-  if (error) return <p className="p-10 text-red-500">{t('common.failed')}</p>;
+  const concealedBenefits = [
+    "полотно врівень зі стіною для мінімалістичних інтер’єрів",
+    "приховані петлі, магнітні замки та сучасна фурнітура",
+    "індивідуальні розміри, замір і прорахунок перед виробництвом",
+  ];
 
   return (
-    <div className="p-10">
-      <h1 className="text-4xl font-bold mb-6">{t('pages.concealedTitle')}</h1>
-      <p className="text-lg text-gray-700 mb-10">{t('pages.concealedBlurb')}</p>
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div className="max-w-4xl mb-8 sm:mb-10">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-4">{t('pages.concealedTitle')} на замовлення в Одесі</h1>
+        <p className="text-base sm:text-lg text-muted-foreground">
+          Приховані двері Hammer Group підходять для сучасних квартир, будинків, офісів і комерційних просторів. Ми виготовляємо двері прихованого монтажу під розмір, допомагаємо підібрати оздоблення під стіну або акцентний дизайн, а також готуємо прорахунок за вашим проєктом.
+        </p>
+        <ul className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+          {concealedBenefits.map((benefit) => (
+            <li key={benefit} className="border rounded-lg p-4 text-sm text-muted-foreground bg-background">
+              {benefit}
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 min-[1600px]:grid-cols-3 gap-8 items-stretch">
-        {products?.map((door: ProductResponse) => (
+        {isLoading && <p>{t('customizer.updating')}</p>}
+        {error && <p className="text-red-500">{t('common.failed')}</p>}
+        {!isLoading && !error && products?.map((door: ProductResponse) => (
           <Card key={door.id} className="overflow-hidden transition hover:shadow-lg flex flex-col h-full">
             <div className="door-card-media aspect-[16/9]">
               <img

@@ -45,8 +45,8 @@ const Footer = () => {
               {[
                 { label: t('nav.home'), to: '/' },
                 { label: t('footer.collections'), to: '/#collections' },
-                { label: t('nav.about'), to: '/about' },
-                { label: t('nav.contact'), to: '/contact' },
+                { label: t('nav.about'), to: '/about/' },
+                { label: t('nav.contact'), to: '/contact/' },
               ].map((item) => (
                 <li key={item.label}>
                   <Link to={item.to} className="text-primary-foreground/80 hover:text-accent transition-colors">
@@ -62,9 +62,9 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">{t('footer.products')}</h4>
             <ul className="space-y-2">
               {[
-                { label: t('nav.interior'), to: '/interior-doors' },
-                { label: t('nav.concealed'), to: '/concealed-doors' },
-                { label: t('nav.furniture'), to: '/cabinet-furniture' },
+                { label: t('nav.interior'), to: '/interior-doors/' },
+                { label: t('nav.concealed'), to: '/concealed-doors/' },
+                { label: t('nav.furniture'), to: '/cabinet-furniture/' },
               ].map((item) => (
                 <li key={item.label}>
                   <Link to={item.to} className="text-primary-foreground/80 hover:text-accent transition-colors">

@@ -1,7 +1,7 @@
 import { Award, Users, Ruler, Building2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTranslation } from 'react-i18next';
-import factoryImage from '@/assets/factory-workshop.jpg';
+import factoryImage from '@/assets/factory-workshop-optimized.jpg';
 
 const AboutSection = () => {
   const { t } = useTranslation();
@@ -52,8 +52,12 @@ const AboutSection = () => {
             <div className="overflow-hidden rounded-2xl shadow-[var(--shadow-premium)]">
               <img 
                 src={factoryImage} 
-                alt="Hammer Group Factory" 
+                alt="Виробництво дверей і корпусних меблів Hammer Group"
                 className="w-full h-96 object-cover transition-transform duration-700 hover:scale-110"
+                width={1200}
+                height={800}
+                loading="lazy"
+                decoding="async"
               />
             </div>
             <div className="absolute -bottom-6 -right-6 bg-accent text-accent-foreground p-6 rounded-xl shadow-lg">

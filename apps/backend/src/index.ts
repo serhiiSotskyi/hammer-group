@@ -63,10 +63,19 @@ const rawOrigins =
   process.env.CORS_ORIGINS ||
   process.env.CORS_ORIGIN ||
   "http://localhost:5173";
+const DEFAULT_ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
+  "http://localhost:8080",
+  "https://gentle-wave-055b70103.2.azurestaticapps.net",
+];
 const ALLOWED_ORIGINS = rawOrigins
   .split(",")
   .map((s) => s.trim())
-  .filter((s) => s.length > 0);
+  .filter((s) => s.length > 0)
+  .concat(DEFAULT_ALLOWED_ORIGINS)
+  .filter((origin, index, origins) => origins.indexOf(origin) === index);
 app.use(
   helmet({
     // Allow serving images/assets to a different origin in dev (frontend on 8080)
@@ -81,7 +90,7 @@ app.use(
       // Allow non-browser or same-origin requests without an Origin header
       if (!origin) return callback(null, true);
       if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS: Origin not allowed: ${origin}`));
+      return callback(null, false);
     },
   }),
 );

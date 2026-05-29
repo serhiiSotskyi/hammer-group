@@ -1,4 +1,11 @@
 {
+  "routes": [
+    { "route": "/interior-doors", "redirect": "/interior-doors/", "statusCode": 301 },
+    { "route": "/concealed-doors", "redirect": "/concealed-doors/", "statusCode": 301 },
+    { "route": "/cabinet-furniture", "redirect": "/cabinet-furniture/", "statusCode": 301 },
+    { "route": "/about", "redirect": "/about/", "statusCode": 301 },
+    { "route": "/contact", "redirect": "/contact/", "statusCode": 301 }
+  ],
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [

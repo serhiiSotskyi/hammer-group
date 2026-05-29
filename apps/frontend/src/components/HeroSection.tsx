@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import heroImage from '@/assets/hero-entryway-light.jpg';
+import heroImage from '@/assets/hero-entryway.jpeg';
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -20,8 +20,12 @@ const HeroSection = () => {
         <div className="absolute inset-0 hero-scrim z-10"></div>
         <img 
           src={heroImage} 
-          alt="Premium Custom Door" 
+          alt="Приховані двері Hammer Group у сучасному інтер’єрі"
           className="w-full h-full object-cover"
+          width={853}
+          height={1280}
+          loading="eager"
+          decoding="async"
         />
       </div>
 

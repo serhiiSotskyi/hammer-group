@@ -12,11 +12,11 @@ const Navigation = () => {
 
   const navItems = [
     { name: t('nav.home'), to: "/" },
-    { name: t('nav.interior'), to: "/interior-doors" },
-    { name: t('nav.concealed'), to: "/concealed-doors" },
-    { name: t('nav.furniture'), to: "/cabinet-furniture" },
-    { name: t('nav.about'), to: "/about" },
-    { name: t('nav.contact'), to: "/contact" }
+    { name: t('nav.interior'), to: "/interior-doors/" },
+    { name: t('nav.concealed'), to: "/concealed-doors/" },
+    { name: t('nav.furniture'), to: "/cabinet-furniture/" },
+    { name: t('nav.about'), to: "/about/" },
+    { name: t('nav.contact'), to: "/contact/" }
   ];
 
   return (

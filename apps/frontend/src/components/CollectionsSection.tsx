@@ -3,9 +3,9 @@ import { Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
-import classicDoor from '@/assets/interiorCollection.png';
-import modernDoor from '@/assets/conclealedCollection.png';
-import luxuryDoor from '@/assets/furniture-collection.png';
+import classicDoor from '@/assets/interior-collection-card.jpg';
+import modernDoor from '@/assets/concealed-collection-card.jpg';
+import luxuryDoor from '@/assets/furniture-collection-card.jpg';
 
 const CollectionsSection = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
@@ -20,7 +20,7 @@ const CollectionsSection = () => {
       features: t('collections.cards.interior.features', { returnObjects: true }) as string[],
       // price: t('collections.cards.interior.price'),
       bestseller: false,
-      to: '/interior-doors',
+      to: '/interior-doors/',
     },
     {
       id: 2,
@@ -30,7 +30,7 @@ const CollectionsSection = () => {
       features: t('collections.cards.concealed.features', { returnObjects: true }) as string[],
       // price: t('collections.cards.concealed.price'),
       bestseller: false,
-      to: '/concealed-doors',
+      to: '/concealed-doors/',
     },
     {
       id: 3,
@@ -40,7 +40,7 @@ const CollectionsSection = () => {
       features: t('collections.cards.furniture.features', { returnObjects: true }) as string[],
       // price: t('collections.cards.furniture.price'),
       bestseller: false,
-      to: '/cabinet-furniture',
+      to: '/cabinet-furniture/',
     }
   ];
 
@@ -81,6 +81,10 @@ const CollectionsSection = () => {
                       className={`w-full h-80 object-cover transition-transform duration-700 ${
                         hoveredCard === index ? 'scale-110' : 'scale-100'
                       }`}
+                      width={index === 1 ? 1000 : 900}
+                      height={index === 1 ? 667 : 900}
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                 </div>

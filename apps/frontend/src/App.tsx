@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
+import SEO from "./components/SEO";
 
 import HomePage from "./pages/HomePage";
 import AboutPage from "./pages/AboutPage";
@@ -34,6 +35,7 @@ import RequireAdmin from "@/components/admin/RequireAdmin";
 function App() {
   return (
     <div className="min-h-screen">
+      <SEO />
       {/* ✅ Navigation always visible */}
       <Navigation />
 
