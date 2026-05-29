@@ -16,4 +16,4 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-Sitemap: https://gentle-wave-055b70103.2.azurestaticapps.net/sitemap.xml
+Sitemap: https://www.hammergroup.ua/sitemap.xml

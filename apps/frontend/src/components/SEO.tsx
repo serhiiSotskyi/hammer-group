@@ -11,7 +11,7 @@ type SeoConfig = {
   serviceDescription?: string;
 };
 
-const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://gentle-wave-055b70103.2.azurestaticapps.net").replace(/\/$/, "");
+const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://www.hammergroup.ua").replace(/\/$/, "");
 const DEFAULT_IMAGE = "/HammerB.svg";
 
 const seoByPath: Record<string, SeoConfig> = {

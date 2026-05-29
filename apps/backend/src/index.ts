@@ -68,6 +68,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:4173",
   "http://127.0.0.1:4173",
   "http://localhost:8080",
+  "https://www.hammergroup.ua",
+  "https://hammergroup.ua",
   "https://gentle-wave-055b70103.2.azurestaticapps.net",
 ];
 const ALLOWED_ORIGINS = rawOrigins

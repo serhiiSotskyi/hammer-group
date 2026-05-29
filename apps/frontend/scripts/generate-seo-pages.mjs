@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const dist = path.join(root, "dist");
-const siteUrl = (process.env.VITE_SITE_URL || process.env.SITE_URL || "https://gentle-wave-055b70103.2.azurestaticapps.net").replace(/\/$/, "");
+const siteUrl = (process.env.VITE_SITE_URL || process.env.SITE_URL || "https://www.hammergroup.ua").replace(/\/$/, "");
 const today = new Date().toISOString().slice(0, 10);
 
 const routes = [
