@@ -30,12 +30,16 @@ export type Schema = { groups: { id: string; label?: string; controls: Ctrl[] }[
 export type PriceLine = { controlId: string; controlLabel?: string; groupId?: string; displayValue?: string; deltaCents: number };
 export type Price = { currency: string; basePriceCents: number; adjustmentsCents: number; totalPriceCents: number; totalBeforeDiscountCents?: number; breakdown: PriceLine[]; promotion?: (PublicPromo & { discountCents: number }) | null };
 
-export const img = (u?: string | null) => (!u ? "/img/oak-flush.jpg" : /^https?:/.test(u) ? u : u.startsWith("/") ? u : `/${u}`);
+// Dev: empty, so /api and /uploads go through the Vite proxy. Hosted builds set VITE_API_ORIGIN to the backend URL.
+export const API_ORIGIN = ((import.meta.env.VITE_API_ORIGIN as string | undefined) ?? "").replace(/\/$/, "");
+const withOrigin = (path: string) => (/^\/(api|uploads)\//.test(path) ? `${API_ORIGIN}${path}` : path);
+
+export const img = (u?: string | null) => (!u ? "/img/oak-flush.jpg" : /^https?:/.test(u) ? u : withOrigin(u.startsWith("/") ? u : `/${u}`));
 
 const cache = new Map<string, Promise<unknown>>();
 export function getJSON<T>(url: string): Promise<T> {
   if (!cache.has(url)) {
-    cache.set(url, fetch(url).then((r) => { if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); }).catch((e) => { cache.delete(url); throw e; }));
+    cache.set(url, fetch(withOrigin(url)).then((r) => { if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); }).catch((e) => { cache.delete(url); throw e; }));
   }
   return cache.get(url) as Promise<T>;
 }
@@ -78,7 +82,7 @@ export const customizerPath = (p: ApiProduct | Product, kind: "interior" | "conc
   `${kind === "concealed" ? "/concealed-customizer" : "/customizer"}?slug=${encodeURIComponent(p.slug)}`;
 
 export async function fetchPrice(productSlug: string, selections: Record<string, unknown>): Promise<Price> {
-  const r = await fetch("/api/price", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug, selections }) });
+  const r = await fetch(withOrigin("/api/price"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug, selections }) });
   if (!r.ok) throw new Error(`price ${r.status}`);
   return r.json();
 }
