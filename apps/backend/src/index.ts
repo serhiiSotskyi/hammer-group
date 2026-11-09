@@ -6,6 +6,8 @@ import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import { Prisma, PrismaClient, SchemaStatus, ProjectCategory } from "@prisma/client";
 import { getDailyUsdToUah, convertCentsUsdToUah } from "./services/fx";
+import { getActivePromotions, bestPromotion, publicPromotion, promoLabel, sanitizePromoCode, PROMO_GROUP_ID } from "./services/promotions";
+import { publicPromotionRoutes, adminPromotionRoutes } from "./routes/promotions";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -780,7 +782,7 @@ function filterInterior<T extends { groupId: string; controlId: string }>(lines:
     // finish
     'finishCoat',
   ]);
-  return (lines || []).filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
+  return (lines || []).filter((l) => l.groupId === PROMO_GROUP_ID || (allowedGroups.has(l.groupId) && allowedControls.has(l.controlId)));
 }
 
 function filterConcealed<T extends { groupId: string; controlId: string }>(lines: T[]): T[] {
@@ -793,7 +795,7 @@ function filterConcealed<T extends { groupId: string; controlId: string }>(lines
     'edgeColor',
     'glassType',
   ]);
-  return (lines || []).filter((l) => allowedGroups.has(l.groupId) && allowedControls.has(l.controlId));
+  return (lines || []).filter((l) => l.groupId === PROMO_GROUP_ID || (allowedGroups.has(l.groupId) && allowedControls.has(l.controlId)));
 }
 
 // Auth helpers
@@ -895,6 +897,10 @@ function buildResolvedSelections(
   });
 }
 
+// Public promotion endpoints (ticker, deal of the week, popup, featured products, recent activity).
+// Mounted before /api/products/:id so /api/products/featured is not treated as an id.
+app.use("/api", publicPromotionRoutes(prisma));
+
 app.get("/api/categories", async (_req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -936,11 +942,18 @@ app.get("/api/products", async (req, res) => {
     } catch {
       // ignore; show raw USD if FX unavailable
     }
-    const mapped = products.map((p) => ({
-      ...p,
-      currency: fxRate ? "UAH" : "USD",
-      convertedPriceCents: fxRate ? Math.round((p.basePriceCents / 100) * fxRate * 100) : p.basePriceCents,
-    }));
+    const promos = await getActivePromotions(prisma).catch(() => []);
+    const toDisplay = (cents: number) => (fxRate ? Math.round((cents / 100) * fxRate * 100) : cents);
+    const mapped = products.map((p) => {
+      const best = bestPromotion(promos, p, p.basePriceCents);
+      return {
+        ...p,
+        currency: fxRate ? "UAH" : "USD",
+        convertedPriceCents: toDisplay(p.basePriceCents),
+        promotion: best ? publicPromotion(best.promo) : null,
+        promoPriceCents: best ? toDisplay(p.basePriceCents - best.discountCents) : null,
+      };
+    });
     res.json(mapped);
   } catch (error) {
     console.error(error);
@@ -1449,13 +1462,19 @@ app.post("/api/price", async (req, res) => {
     const fx = await getDailyUsdToUah(prisma);
     const conv = (c: number) => convertCentsUsdToUah(c, fx.rate);
     const { normalizedSelections, ...priced } = result;
+    const promo = applyPromotion(await getActivePromotions(prisma).catch(() => []), product, priced.totalPriceCents, conv);
     res.json({
       currency: "UAH",
       basePriceCents: conv(priced.basePriceCents),
       adjustmentsCents: conv(priced.adjustmentsCents),
-      totalPriceCents: conv(priced.totalPriceCents),
+      totalPriceCents: promo ? promo.totalAfterUah : conv(priced.totalPriceCents),
+      totalBeforeDiscountCents: conv(priced.totalPriceCents),
       rounding: priced.rounding,
-      breakdown: priced.breakdown.map((b) => ({ ...b, deltaCents: conv(b.deltaCents) })),
+      breakdown: [
+        ...priced.breakdown.map((b) => ({ ...b, deltaCents: conv(b.deltaCents) })),
+        ...(promo ? [promo.line] : []),
+      ],
+      promotion: promo ? { ...publicPromotion(promo.promo), discountCents: promo.discountUah } : null,
       fx: { base: "USD", quote: "UAH", rate: fx.rate, asOf: fx.asOf, source: fx.source },
     });
   } catch (error) {
@@ -1469,7 +1488,7 @@ app.post("/api/price", async (req, res) => {
 });
 
 app.post("/api/quotes", async (req, res) => {
-  const { productSlug, selections, customer, notes } = req.body ?? {};
+  const { productSlug, selections, customer, notes, promoCode } = req.body ?? {};
 
   if (!productSlug) {
     return res.status(400).json({ error: "productSlug is required" });
@@ -1556,6 +1575,9 @@ app.post("/api/quotes", async (req, res) => {
       : product.category.slug === 'concealed' ? filterConcealed(payload.breakdown as any)
       : payload.breakdown;
 
+    // Same promotion logic as /api/price, so the saved total always matches what the customer saw.
+    const promo = applyPromotion(await getActivePromotions(prisma).catch(() => []), product, payload.totalPriceCents, conv);
+
     const quote = await prisma.quote.create({
       data: {
         productId: product.id,
@@ -1567,8 +1589,14 @@ app.post("/api/quotes", async (req, res) => {
         schemaSnapshot: schemaJson as unknown as Prisma.InputJsonValue,
         basePriceCents: conv(payload.basePriceCents),
         adjustmentsCents: conv(payload.adjustmentsCents),
-        totalPriceCents: conv(payload.totalPriceCents),
-        breakdown: filteredBreakdown.map((b: any) => ({ ...b, deltaCents: conv(b.deltaCents) })) as unknown as Prisma.InputJsonValue,
+        totalPriceCents: promo ? promo.totalAfterUah : conv(payload.totalPriceCents),
+        breakdown: [
+          ...filteredBreakdown.map((b: any) => ({ ...b, deltaCents: conv(b.deltaCents) })),
+          ...(promo ? [promo.line] : []),
+        ] as unknown as Prisma.InputJsonValue,
+        promotionId: promo ? promo.promo.id : null,
+        discountCents: promo ? promo.discountUah : null,
+        promoCode: sanitizePromoCode(promoCode),
         resolvedSelections: resolvedSelections as unknown as Prisma.InputJsonValue,
         customerName: customer?.name ?? null,
         customerEmail: customer?.email ?? null,
@@ -1585,6 +1613,7 @@ app.post("/api/quotes", async (req, res) => {
     res.status(201).json({
       quoteId: quote.id,
       totalPriceCents: quote.totalPriceCents,
+      discountCents: quote.discountCents,
       createdAt: quote.createdAt,
       schemaVersionId: quote.schemaVersionId,
       schemaChecksum: quote.schemaChecksum,
@@ -1600,14 +1629,44 @@ app.post("/api/quotes", async (req, res) => {
   }
 });
 
+// Promotions: pick the best active promotion for a product and express it in UAH.
+// Discount is computed on the full configured USD total, then converted, so the line equals before − after.
+function applyPromotion(
+  promos: Awaited<ReturnType<typeof getActivePromotions>>,
+  product: { id: number; categoryId: number; collectionId: number | null },
+  totalUsdCents: number,
+  conv: (c: number) => number,
+) {
+  const best = bestPromotion(promos, product, totalUsdCents);
+  if (!best) return null;
+  const totalBeforeUah = conv(totalUsdCents);
+  const totalAfterUah = conv(totalUsdCents - best.discountCents);
+  const discountUah = totalBeforeUah - totalAfterUah;
+  return {
+    promo: best.promo,
+    discountUah,
+    totalAfterUah,
+    line: {
+      groupId: PROMO_GROUP_ID,
+      groupLabel: "Акція",
+      controlId: PROMO_GROUP_ID,
+      controlLabel: best.promo.title,
+      selection: best.promo.id,
+      displayValue: promoLabel(best.promo),
+      deltaCents: -discountUah,
+    },
+  };
+}
+
 // Admin quotes listing
 app.use("/api/admin", authenticate, requireAdmin);
+app.use("/api/admin", adminPromotionRoutes(prisma));
 
 app.get("/api/admin/quotes", async (_req, res) => {
   try {
     const quotes = await prisma.quote.findMany({
       orderBy: { createdAt: "desc" },
-      include: { product: true, category: true },
+      include: { product: true, category: true, promotion: { select: { id: true, title: true, kind: true, value: true } } },
     });
 
     // Compute resolvedSelections for legacy quotes on the fly

@@ -21,6 +21,7 @@ model Category {
   collections    Collection[]
   schemas        ParamSchema[]
   quotes         Quote[]
+  promotions     Promotion[]
   activeSchemaId Int?        @unique
   activeSchema   ParamSchema?  @relation("ActiveSchema", fields: [activeSchemaId], references: [id])
   createdAt      DateTime      @default(now())
@@ -41,9 +42,11 @@ model Product {
   collection     Collection? @relation(fields: [collectionId], references: [id])
   doorType       DoorType   @default(STANDARD)
   isActive       Boolean    @default(true)
+  featuredRank   Int?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   quotes         Quote[]
+  promotions     PromotionProduct[]
 
   @@index([categoryId, collectionId, sortOrder])
 }
@@ -56,6 +59,7 @@ model Collection {
   slug       String
   imageUrl   String?
   products   Product[]
+  promotions Promotion[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -105,6 +109,12 @@ model Quote {
 
   delivered        Boolean  @default(false)
   adminNotes       String?
+
+  // Promotion applied by the server at quote time (if any)
+  promotionId      Int?
+  promotion        Promotion? @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+  discountCents    Int?
+  promoCode        String?
 
   // FX snapshot at time of quote
   baseCurrency     String?  @default("USD")
@@ -173,4 +183,48 @@ model AdminUser {
   passwordHash String
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
+}
+
+enum PromotionKind {
+  PERCENT
+  AMOUNT_OFF
+  ANNOUNCEMENT
+}
+
+// Deals shown on the site (ticker, deal of the week, popup) and applied by the pricing engine.
+model Promotion {
+  id           Int                @id @default(autoincrement())
+  title        String
+  subtitle     String?
+  kind         PromotionKind      @default(ANNOUNCEMENT)
+  value        Int?               // PERCENT: 1–90; AMOUNT_OFF: USD cents (same unit as basePriceCents)
+  categoryId   Int?
+  category     Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  collectionId Int?
+  collection   Collection?        @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  products     PromotionProduct[]
+  startsAt     DateTime           @default(now())
+  endsAt       DateTime?
+  showInTicker Boolean            @default(true)
+  isDealOfWeek Boolean            @default(false)
+  showPopup    Boolean            @default(false)
+  popupCode    String?
+  imageUrl     String?
+  priority     Int                @default(0)
+  isActive     Boolean            @default(true)
+  quotes       Quote[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([isActive, startsAt, endsAt])
+}
+
+model PromotionProduct {
+  promotionId Int
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, productId])
+  @@index([productId])
 }

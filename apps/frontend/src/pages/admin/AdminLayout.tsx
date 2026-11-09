@@ -55,6 +55,7 @@ export default function AdminLayout() {
           <Link to="/admin/currencies">Валюти</Link>
           <Link to="/admin/pricing">Ціноутворення (Міжкімнатні)</Link>
           <Link to="/admin/pricing-concealed">Ціноутворення (Приховані)</Link>
+          <Link to="/admin/promotions">Акції та пропозиції</Link>
         </nav>
         <button
           className="mt-6 text-sm underline"
