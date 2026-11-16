@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useSmoothScroll, ScrollTrigger } from "./lib/motion";
+import { useSmoothScroll, refreshScroll } from "./lib/motion";
 import { DoorTransition, PAGE_NAMES } from "./lib/nav";
 import { Loader, Cursor, Ticker, Nav } from "./components/Chrome";
 import Hero from "./components/Hero";
@@ -32,7 +32,7 @@ function Shell({ ready }: { ready: boolean }) {
   const isCustomizer = pathname.includes("customizer");
   useEffect(() => {
     document.title = `${PAGE_NAMES[pathname] ?? "Hammer Group"} — Hammer Group · Лабораторія редизайну`;
-    const t = setTimeout(() => ScrollTrigger.refresh(), 400);
+    const t = setTimeout(refreshScroll, 400);
     return () => clearTimeout(t);
   }, [pathname]);
   return (
@@ -65,7 +65,7 @@ export default function App() {
   useSmoothScroll();
   const done = useCallback(() => setReady(true), []);
   useEffect(() => {
-    const r = () => ScrollTrigger.refresh();
+    const r = refreshScroll;
     document.fonts?.ready.then(r);
     window.addEventListener("load", r);
     // Sections that load from the API (deal of the week, top sales, grids) change the page height

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { gsap, ScrollTrigger, Reveal, Magnetic, SplitChars, getLenis } from "../lib/motion";
+import { gsap, ScrollTrigger, Reveal, Magnetic, SplitChars, getLenis, refreshScroll } from "../lib/motion";
 import { collections, topSales, dealOfWeek, uah, CONTACT } from "../lib/data";
 import { TLink } from "../lib/nav";
 import { useApi, usePromotions, productsUrl, img, customizerPath, categoryLabel, type ApiProduct } from "../lib/api";
@@ -204,6 +204,8 @@ export function TopSales() {
         });
       });
     });
+    // The rail's pin is usually created after later sections (its data arrives last): re-sort + re-measure.
+    refreshScroll();
     return () => mm.revert();
   }, [items.length]);
   return (
@@ -301,7 +303,7 @@ export function DealOfWeek() {
         .from(".deal-off", { scale: 0, rotate: -90, duration: 1, ease: "back.out(2)" }, "-=1.2");
       gsap.to(".deal-off", { rotate: 360, repeat: -1, duration: 18, ease: "none" });
     }, ref);
-    ScrollTrigger.refresh();
+    refreshScroll();
     return () => ctx.revert();
   }, [hasDeal]);
   if (!deal) return null; // no active "deal of the week" in admin → section hidden

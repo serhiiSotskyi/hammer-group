@@ -6,6 +6,11 @@ import Lenis from "lenis";
 gsap.registerPlugin(ScrollTrigger);
 export { gsap, ScrollTrigger };
 
+/** Re-measure every ScrollTrigger in page order. Sections that load from the API create their
+ *  pinned triggers late; without sorting, later pins (e.g. the craft photo) ignore the extra
+ *  scroll length of an earlier pin created after them and start too early. */
+export const refreshScroll = () => { ScrollTrigger.sort(); ScrollTrigger.refresh(); };
+
 export const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 

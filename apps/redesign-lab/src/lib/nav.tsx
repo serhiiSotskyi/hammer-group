@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useRef, type ReactNode, type MouseEvent, type CSSProperties } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { gsap, ScrollTrigger, getLenis } from "./motion";
+import { gsap, ScrollTrigger, getLenis, refreshScroll } from "./motion";
 
 export const PAGE_NAMES: Record<string, string> = {
   "/": "Головна",
@@ -48,7 +48,7 @@ export function DoorTransition({ children, ready }: { children: ReactNode; ready
         window.scrollTo(0, 0);
       })
       .to({}, { duration: 0.35 })
-      .add(() => ScrollTrigger.refresh())
+      .add(refreshScroll)
       .to(label.current, { yPercent: -100, opacity: 0, duration: 0.35, ease: "expo.in" })
       .to(q(".dw-seam"), { scaleY: 0, duration: 0.3 }, "<")
       .to(q(".dw-l"), { xPercent: -100, duration: 1, ease: "expo.inOut" })
