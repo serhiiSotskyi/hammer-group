@@ -16,24 +16,33 @@ export function PromoPopup() {
   const enabled = !!cfg;
   useEffect(() => {
     if (!enabled) return;
-    let seen = false;
-    try { seen = sessionStorage.getItem("hg-promo") === "1"; } catch { /* storage unavailable */ }
     (window as any).__openPromo = () => setOpen(true); // dev helper to preview the popup
+    // Shown at most once every 3 days (falls back to once per tab if storage is blocked).
+    const KEY = "hg-promo-seen", COOLDOWN = 3 * 24 * 60 * 60 * 1000;
+    let seen = false;
+    try { seen = Date.now() - Number(localStorage.getItem(KEY) || 0) < COOLDOWN; } catch { seen = sessionStorage.getItem(KEY) === "1"; }
     if (seen) return;
+    const startedAt = Date.now();
+    let maxDepth = 0;
+    const depth = () => window.scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight);
     const show = () => {
       if (seen) return;
       seen = true;
-      try { sessionStorage.setItem("hg-promo", "1"); } catch { /* ignore */ }
+      try { localStorage.setItem(KEY, String(Date.now())); } catch { try { sessionStorage.setItem(KEY, "1"); } catch { /* ignore */ } }
       setOpen(true);
     };
-    const onScroll = () => {
-      const p = window.scrollY / (document.documentElement.scrollHeight - innerHeight);
-      if (p > 0.55) show();
+    // 1) Engaged visitor: well into the page (around the "Найпопулярніші" rail).
+    const onScroll = () => { maxDepth = Math.max(maxDepth, depth()); if (maxDepth > 0.55) show(); };
+    // 2) Exit intent: the cursor actually leaves the window through the top edge — not just
+    //    moving up to the menu or ticker — and only after 15 s and some scrolling.
+    const onLeave = (e: MouseEvent) => {
+      if (e.relatedTarget !== null || e.clientY > 0) return;
+      if (Date.now() - startedAt < 15000 || maxDepth < 0.2) return;
+      show();
     };
-    const onLeave = (e: MouseEvent) => { if (e.clientY < 8) show(); };
     window.addEventListener("scroll", onScroll, { passive: true });
-    document.addEventListener("mouseout", onLeave);
-    return () => { window.removeEventListener("scroll", onScroll); document.removeEventListener("mouseout", onLeave); };
+    document.documentElement.addEventListener("mouseleave", onLeave);
+    return () => { window.removeEventListener("scroll", onScroll); document.documentElement.removeEventListener("mouseleave", onLeave); };
   }, [enabled]);
   if (!cfg) return null;
 

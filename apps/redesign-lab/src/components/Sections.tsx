@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { gsap, ScrollTrigger, Reveal, Magnetic, SplitChars } from "../lib/motion";
+import { gsap, ScrollTrigger, Reveal, Magnetic, SplitChars, getLenis } from "../lib/motion";
 import { collections, topSales, dealOfWeek, uah, CONTACT } from "../lib/data";
 import { TLink } from "../lib/nav";
-import { useApi, usePromotions, productsUrl, img, customizerPath, type ApiProduct } from "../lib/api";
+import { useApi, usePromotions, productsUrl, img, customizerPath, categoryLabel, type ApiProduct } from "../lib/api";
 import { SmartImg } from "./Page";
 
 /* ── Big marquee that skews + speeds up with scroll velocity ───────────── */
@@ -87,14 +87,22 @@ export function Collections() {
   }, []);
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from(".col-row", { yPercent: 60, opacity: 0, stagger: 0.12, duration: 1.2, ease: "expo.out", scrollTrigger: { trigger: ".col-list", start: "top 80%" } });
-      gsap.from(".col-line", { scaleX: 0, transformOrigin: "left", stagger: 0.12, duration: 1.4, ease: "expo.inOut", scrollTrigger: { trigger: ".col-list", start: "top 80%" } });
+      // Start as soon as the list peeks in, so there is never an empty block on screen.
+      // Explicit end values (fromTo) so rows can never be left invisible, then clear inline styles.
+      gsap.fromTo(".col-row", { yPercent: 40, autoAlpha: 0 }, {
+        yPercent: 0, autoAlpha: 1, stagger: 0.07, duration: 0.9, ease: "expo.out", clearProps: "opacity,visibility,transform",
+        scrollTrigger: { trigger: ".col-list", start: "top bottom", once: true },
+      });
+      gsap.fromTo(".col-line", { scaleX: 0 }, {
+        scaleX: 1, transformOrigin: "left", stagger: 0.07, duration: 1.1, ease: "expo.inOut",
+        scrollTrigger: { trigger: ".col-list", start: "top bottom", once: true },
+      });
     }, ref);
     return () => ctx.revert();
   }, []);
   return (
     <section ref={ref} id="collections" className="collections">
-      <div className="sec-head">
+      <div className="sec-head sec-head--tight">
         <p className="mono eyebrow">( 01 — Колекції )</p>
         <Reveal as="h2" className="sec-title">Оберіть, що <i className="serif">відчинити</i></Reveal>
       </div>
@@ -124,6 +132,37 @@ export function Collections() {
 export function TopSales() {
   const ref = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
+  const pinST = useRef<ScrollTrigger | null>(null);
+  const [edge, setEdge] = useState<"start" | "mid" | "end">("start");
+
+  // Arrow buttons: on desktop the rail is driven by vertical scroll (1px scroll = 1px sideways),
+  // on phones it is a native swipe strip.
+  const step = () => {
+    const card = track.current?.querySelector<HTMLElement>(".ts-card");
+    return card ? card.offsetWidth + 28 : 400;
+  };
+  const go = (dir: -1 | 1) => {
+    const st = pinST.current;
+    if (st && window.matchMedia("(min-width: 900px)").matches) {
+      const from = Math.max(window.scrollY, st.start);
+      const to = Math.min(st.end, Math.max(st.start, from + dir * step()));
+      const lenis = getLenis();
+      if (lenis) lenis.scrollTo(to, { duration: 1.1 }); else window.scrollTo({ top: to, behavior: "smooth" });
+    } else {
+      track.current?.scrollBy({ left: dir * step(), behavior: "smooth" });
+    }
+  };
+  useEffect(() => {
+    const el = track.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (window.matchMedia("(min-width: 900px)").matches) return;
+      const max = el.scrollWidth - el.clientWidth;
+      setEdge(el.scrollLeft < 8 ? "start" : el.scrollLeft > max - 8 ? "end" : "mid");
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
   // Manual picks first, then most-requested in 30 days (GET /api/products/featured).
   // Falls back to the first catalogue products when that endpoint isn't deployed yet.
   const featured = useApi<ApiProduct[]>("/api/products/featured?limit=6");
@@ -131,7 +170,7 @@ export function TopSales() {
   const mod = useApi<ApiProduct[]>(featured.error ? productsUrl({ categorySlug: "interior", collection: "modern" }) : null);
   const live = featured.data ?? [...(con.data ?? []).slice(0, 4), ...(mod.data ?? []).slice(0, 2)];
   const items = live.length ? live.map((p, i) => ({
-    id: p.slug, rank: i + 1, name: p.name.trim(), collection: p.collection?.name ?? p.category?.name ?? "Приховані",
+    id: p.slug, rank: i + 1, name: p.name.trim(), collection: categoryLabel(p) || "Приховані двері",
     image: img(p.imageUrl),
     price: Math.round((p.promoPriceCents ?? p.convertedPriceCents ?? 0) / 100),
     oldPrice: p.promoPriceCents != null ? Math.round((p.convertedPriceCents ?? 0) / 100) : 0,
@@ -144,8 +183,12 @@ export function TopSales() {
       const dist = () => track.current!.scrollWidth - window.innerWidth + 80;
       const tween = gsap.to(track.current, {
         x: () => -dist(), ease: "none",
-        scrollTrigger: { trigger: ref.current, start: "top top", end: () => "+=" + dist(), scrub: 1, pin: true, invalidateOnRefresh: true },
+        scrollTrigger: {
+          trigger: ref.current, start: "top top", end: () => "+=" + dist(), scrub: 1, pin: true, invalidateOnRefresh: true,
+          onUpdate: (s) => setEdge(s.progress < 0.02 ? "start" : s.progress > 0.98 ? "end" : "mid"),
+        },
       });
+      pinST.current = tween.scrollTrigger ?? null;
       gsap.utils.toArray<HTMLElement>(".ts-card").forEach((card) => {
         gsap.fromTo(card.querySelector(".ts-img img"), { scale: 1.35, xPercent: -10 }, {
           scale: 1.05, xPercent: 10, ease: "none",
@@ -168,8 +211,14 @@ export function TopSales() {
       <div className="ts-head">
         <p className="mono eyebrow">( 02 — Найпопулярніші )</p>
         <h2 className="sec-title">Найчастіше<br /><i className="serif">прораховують</i></h2>
-        <p className="mono ts-hint">← Гортайте →</p>
+        <p className="mono ts-hint">Гортайте або натисніть стрілки</p>
       </div>
+      <button type="button" className={`ts-arrow ts-arrow--prev ${edge === "start" ? "is-off" : ""}`} onClick={() => go(-1)} aria-label="Попередні моделі" data-cursor="Назад">
+        <svg viewBox="0 0 24 24" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>
+      </button>
+      <button type="button" className={`ts-arrow ts-arrow--next ${edge === "end" ? "is-off" : ""} ${edge === "start" ? "is-hint" : ""}`} onClick={() => go(1)} aria-label="Наступні моделі" data-cursor="Далі">
+        <svg viewBox="0 0 24 24" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+      </button>
       <div ref={track} className="ts-track">
         {items.map((d) => {
           const off = d.oldPrice ? Math.round((1 - d.price / d.oldPrice) * 100) : 0;

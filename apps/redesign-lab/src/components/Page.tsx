@@ -29,7 +29,7 @@ export function PageHero({ index, crumbs, title, accent, lead, image, children, 
         <p className="mono crumbs">{crumbs.map((c, i) => <span key={i}>{c}</span>)}</p>
         <p className="mono ph-index">( {index} )</p>
       </div>
-      <h1 className="ph-title" style={{ fontSize: `min(11.5vw, ${(86 / (Math.max(...title.split(" ").map((w) => w.length)) * 0.82)).toFixed(2)}vw)` }}>
+      <h1 className="ph-title" style={{ fontSize: `min(8vw, 150px, ${(76 / (Math.max(...title.split(" ").map((w) => w.length)) * 0.82)).toFixed(2)}vw)` }}>
         <SplitChars text={title} />
         {accent && <span className="ph-accent-wrap"><span className="ph-accent serif">{accent}</span></span>}
       </h1>

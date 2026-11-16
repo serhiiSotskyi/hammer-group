@@ -4,7 +4,7 @@ import { useSmoothScroll, ScrollTrigger } from "./lib/motion";
 import { DoorTransition, PAGE_NAMES } from "./lib/nav";
 import { Loader, Cursor, Ticker, Nav } from "./components/Chrome";
 import Hero from "./components/Hero";
-import { VelocityMarquee, Statement, Collections, TopSales, DealOfWeek, Stats, Craft, Contact } from "./components/Sections";
+import { VelocityMarquee, Collections, TopSales, DealOfWeek, Stats, Craft, Contact } from "./components/Sections";
 import { PromoPopup, ActivityToasts } from "./components/Promo";
 import { InteriorPage, CollectionPage } from "./pages/Interior";
 import { ConcealedPage } from "./pages/Concealed";
@@ -18,7 +18,6 @@ function Home() {
     <>
       <Hero />
       <VelocityMarquee text="Міжкімнатні · Приховані · Корпусні меблі · Розсувні системи" />
-      <Statement />
       <Collections />
       <TopSales />
       <DealOfWeek />

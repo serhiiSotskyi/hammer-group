@@ -63,6 +63,11 @@ export function usePromotions() {
   return { promos: r.data, loading: r.loading, unavailable: !!r.error };
 }
 
+// Category names in the database are English ("Concealed Doors"); show Ukrainian on the site.
+const CATEGORY_UK: Record<string, string> = { interior: "Міжкімнатні двері", concealed: "Приховані двері", furniture: "Корпусні меблі" };
+export const categoryLabel = (p: Pick<ApiProduct, "category" | "collection">) =>
+  p.collection?.name ?? (p.category ? CATEGORY_UK[p.category.slug] ?? p.category.name : "");
+
 export const productsUrl = (q: Record<string, string>) => `/api/products?${new URLSearchParams(q)}`;
 
 /** API product → card model. Price is the converted UAH "from" price shown on the live site. */
@@ -74,7 +79,7 @@ export const toCard = (p: ApiProduct): Product => ({
   price: Math.round((p.promoPriceCents ?? p.convertedPriceCents ?? p.basePriceCents) / 100),
   oldPrice: p.promoPriceCents != null ? Math.round((p.convertedPriceCents ?? p.basePriceCents) / 100) : undefined,
   tag: p.promotion && p.promoPriceCents != null ? "−%" : undefined,
-  finish: p.collection?.name ?? p.category?.name ?? "",
+  finish: categoryLabel(p),
   note: p.collection?.name ? `Колекція «${p.collection.name}»` : p.doorType === "BUDGET" ? "Стандартні розміри" : "Під ваш розмір",
 });
 
