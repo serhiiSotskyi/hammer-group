@@ -120,6 +120,7 @@ export function CustomizerPage({ kind }: { kind: "interior" | "concealed" }) {
   const edge = METAL[String(sel.edgeColor)] ?? "transparent";
   const hiddenHinges = sel.hingeType === "hidden" || kind === "concealed";
   const glass = /склом|glass/i.test(product?.name ?? "");
+  const photo = !!product && kind === "interior";
   const angle = (right ? 1 : -1) * (inside ? -72 : 72);
   const lines = (price?.breakdown ?? []).filter((b) => b.deltaCents !== 0);
   const total = price ? Math.round(price.totalPriceCents / 100) : product ? Math.round((product.convertedPriceCents ?? 0) / 100) : 0;
@@ -137,7 +138,8 @@ export function CustomizerPage({ kind }: { kind: "interior" | "concealed" }) {
         <div className="cz-room">
           <div className="cz-wall" />
           <div className="cz-floor" />
-          <div className="cz-door" style={{ height: `${62 * (h / 2700)}vh`, width: `${16 * (w / 900)}vw` }}>
+          {/* One mm→px scale (--k, set in CSS per category) for both sides, so proportions match the real size. */}
+          <div className={`cz-door ${kind === "concealed" ? "is-concealed" : ""}`} style={{ height: `calc(var(--k) * ${h})`, width: `calc(var(--k) * ${w})` }}>
             {kind === "interior" && <span className={`cz-casing ${sel.casingFront === "telescopic" ? "is-profile" : ""}`} />}
             <span className="cz-light" style={{ opacity: open ? 1 : 0.15 }} />
             <div className="cz-leaf" style={{
@@ -146,10 +148,12 @@ export function CustomizerPage({ kind }: { kind: "interior" | "concealed" }) {
               transformOrigin: right ? "right center" : "left center",
               boxShadow: edge !== "transparent" ? `inset 0 0 0 3px ${edge}, 0 20px 40px rgba(0,0,0,.25)` : undefined,
             }}>
-              {product && kind === "interior" && <img className="cz-leaf-photo" src={img(product.imageUrl)} alt="" />}
+              {/* Catalogue photos are shot with the handle on the left (hinges on the right):
+                  mirror them for left-hinged openings so the handle sits opposite the hinges. */}
+              {photo && <img className="cz-leaf-photo" src={img(product!.imageUrl)} alt="" style={{ transform: right ? "none" : "scaleX(-1)" }} />}
               {glass && <span className="cz-glass cz-glass--full" />}
-              <span className="cz-handle" style={{ background: handle, [right ? "left" : "right"]: "9%" } as any} />
-              {magnetic && <span className="cz-smart" style={{ [right ? "left" : "right"]: "9%" } as any} />}
+              {!photo && <span className="cz-handle" style={{ background: handle, [right ? "left" : "right"]: "9%" } as any} />}
+              {!photo && magnetic && <span className="cz-smart" style={{ [right ? "left" : "right"]: "9%" } as any} />}
               {!hiddenHinges && [18, 50, 82].map((t) => <span key={t} className="cz-hinge" style={{ top: `${t}%`, [right ? "right" : "left"]: "-3px" } as any} />)}
             </div>
             <span className="cz-dim cz-dim--h mono"><i />{h} мм<i /></span>
