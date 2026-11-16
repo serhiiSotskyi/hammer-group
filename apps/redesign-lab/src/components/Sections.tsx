@@ -381,7 +381,7 @@ export function Craft() {
         scrollTrigger: { trigger: ref.current, start: "top top", end: "+=120%", scrub: true, pin: true },
       });
       gsap.fromTo(".craft-media img", { scale: 1.4 }, { scale: 1, ease: "none", scrollTrigger: { trigger: ref.current, start: "top top", end: "+=120%", scrub: true } });
-      gsap.fromTo(".craft-copy", { opacity: 0, y: 60 }, { opacity: 1, y: 0, ease: "none", scrollTrigger: { trigger: ref.current, start: "top top+=-400", end: "+=60%", scrub: true } });
+      gsap.fromTo(".craft-copy", { opacity: 0, y: 60 }, { opacity: 1, y: 0, ease: "none", scrollTrigger: { trigger: ref.current, start: "top 75%", end: "top 15%", scrub: true } });
     }, ref);
     return () => ctx.revert();
   }, []);
