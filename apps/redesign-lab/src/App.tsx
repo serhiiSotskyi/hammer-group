@@ -68,7 +68,19 @@ export default function App() {
     const r = () => ScrollTrigger.refresh();
     document.fonts?.ready.then(r);
     window.addEventListener("load", r);
-    return () => window.removeEventListener("load", r);
+    // Sections that load from the API (deal of the week, top sales, grids) change the page height
+    // after the first measure; re-measure so pinned sections (craft, rail) start in the right place.
+    let t: ReturnType<typeof setTimeout> | undefined;
+    let lastH = 0;
+    const ro = new ResizeObserver(() => {
+      const h = document.body.scrollHeight;
+      if (Math.abs(h - lastH) < 2) return;
+      lastH = h;
+      clearTimeout(t);
+      t = setTimeout(r, 200);
+    });
+    ro.observe(document.body);
+    return () => { window.removeEventListener("load", r); ro.disconnect(); clearTimeout(t); };
   }, []);
   return (
     <BrowserRouter>
