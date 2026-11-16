@@ -217,7 +217,7 @@ button { font: inherit; color: inherit; background: none; border: 0; }
 .col-img-mobile { display: none; }
 .col-preview {
   position: fixed; left: 0; top: 0; z-index: 40; pointer-events: none;
-  width: 340px; height: 420px; margin: -210px 0 0 -170px; overflow: hidden; border-radius: 4px;
+  width: 200px; height: 250px; margin: -125px 0 0 56px; overflow: hidden; border-radius: 4px;
   clip-path: inset(50% 50% 50% 50%); transition: clip-path .7s var(--ease);
 }
 .col-preview.is-on { clip-path: inset(0 0 0 0); }
