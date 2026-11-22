@@ -1,6 +1,8 @@
 name: Redesign staging (Static Web App)
 
-# Deploys apps/redesign-lab to the separate staging Static Web App (hg-redesign).
+# Deploys the combined site to the separate staging Static Web App (hg-redesign, new.hammergroup.ua):
+#   /             new public site (apps/redesign-lab)
+#   /admin/*      existing admin SPA (apps/frontend), assets under /admin-app/
 # Runs only for the `redesign` branch — it never touches the live site (hg-frontend).
 on:
   push:
@@ -8,6 +10,8 @@ on:
       - redesign
     paths:
       - "apps/redesign-lab/**"
+      - "apps/frontend/**"
+      - "scripts/build-site.sh"
       - ".github/workflows/redesign-staging.yml"
   workflow_dispatch:
 
@@ -23,15 +27,20 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: apps/redesign-lab/package-lock.json
+          cache-dependency-path: |
+            apps/redesign-lab/package-lock.json
+            apps/frontend/package-lock.json
 
-      - name: Install
+      - name: Install (redesign-lab)
         run: npm ci
         working-directory: apps/redesign-lab
 
-      - name: Build
-        run: npm run build
-        working-directory: apps/redesign-lab
+      - name: Install (frontend / admin)
+        run: npm ci
+        working-directory: apps/frontend
+
+      - name: Build combined site (staging)
+        run: bash scripts/build-site.sh staging
         env:
           VITE_API_ORIGIN: https://hg-backend-d3habycebefnf8ex.polandcentral-01.azurewebsites.net
 
