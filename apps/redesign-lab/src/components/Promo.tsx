@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { usePromotions, useApi, type Activity } from "../lib/api";
+import { usePromotions, useApi, submitGeneralInquiry, savePromoCode, phoneOk, PHONE_HINT, FormError, type Activity } from "../lib/api";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -8,6 +8,10 @@ const ease = [0.16, 1, 0.3, 1] as const;
 export function PromoPopup() {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const { promos, unavailable } = usePromotions();
   // Admin-configured popup; demo offer only while the promotions API isn't deployed. No popup configured → none shown.
   const cfg = promos?.popup
@@ -46,6 +50,25 @@ export function PromoPopup() {
   }, [enabled]);
   if (!cfg) return null;
 
+  // Phone lead → POST /api/contact/general (general inquiries accept phone without email).
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (sending) return;
+    if (!phoneOk(phone)) return setError(PHONE_HINT);
+    setSending(true);
+    setError("");
+    try {
+      const message = cfg.code ? `Промокод з попапу: ${cfg.code} (акція: ${cfg.title})` : `Заявка з попапу (акція: ${cfg.title})`;
+      await submitGeneralInquiry({ name: name.trim() || "Клієнт з сайту", phone: phone.trim(), message });
+      if (cfg.code) savePromoCode(cfg.code);
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof FormError ? err.message : "Не вдалося надіслати. Спробуйте ще раз.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -67,16 +90,17 @@ export function PromoPopup() {
               </motion.h3>
               <AnimatePresence mode="wait">
                 {!sent ? (
-                  <motion.form key="f" className="promo-form" exit={{ opacity: 0, y: -10 }} onSubmit={(e) => { e.preventDefault(); setSent(true); }}>
+                  <motion.form key="f" className="promo-form" exit={{ opacity: 0, y: -10 }} onSubmit={submit} noValidate>
                     <p>Залиште номер — менеджер зафіксує знижку та прорахує ваш проєкт.</p>
-                    <input type="tel" placeholder="+380 __ ___ __ __" required />
-                    <button className="pill pill--signal" type="submit">Отримати знижку →</button>
+                    <input placeholder="Ім’я (необов’язково)" autoComplete="name" maxLength={120} aria-label="Ім’я" value={name} onChange={(e) => { setName(e.target.value); setError(""); }} />
+                    <input type="tel" placeholder="+380 __ ___ __ __" required autoComplete="tel" inputMode="tel" maxLength={40} aria-label="Телефон" value={phone} onChange={(e) => { setPhone(e.target.value); setError(""); }} />
+                    {error && <p className="form-err" role="alert">{error}</p>}
+                    <button className="pill pill--signal" type="submit" disabled={sending}>{sending ? "Надсилаємо…" : "Отримати знижку →"}</button>
                   </motion.form>
                 ) : (
                   <motion.div key="ok" className="promo-ok" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
                     {cfg.code && <span className="promo-code">{cfg.code}</span>}
-                    <p>Код збережено. Ми зателефонуємо протягом робочого дня.</p>
-                    <p className="mono" style={{ opacity: 0.5 }}>(прототип — нічого не надсилається)</p>
+                    <p>{cfg.code ? "Код збережено — він автоматично підставиться в кошторис. " : "Дякуємо! "}Ми зателефонуємо протягом робочого дня.</p>
                   </motion.div>
                 )}
               </AnimatePresence>

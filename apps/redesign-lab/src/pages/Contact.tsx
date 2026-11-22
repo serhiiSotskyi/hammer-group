@@ -3,16 +3,47 @@ import { AnimatePresence, motion } from "motion/react";
 import { PageHero } from "../components/Page";
 import { Magnetic } from "../lib/motion";
 import { CONTACT } from "../lib/data";
+import { FormError, PHONE_HINT, phoneOk, submitFurnitureInquiry, submitGeneralInquiry } from "../lib/api";
 
-/** Form with floating labels and topic chips. Prototype: does not send anything. */
+/**
+ * Request form with floating labels and topic chips.
+ * "Меблі" goes to POST /api/contact/furniture (furniture inbox in the admin); other topics to /api/contact/general.
+ */
 export function QuoteForm({ topic = "Двері" }: { topic?: string }) {
   const topics = ["Міжкімнатні", "Приховані", "Меблі", "Інше"];
   const [t, setT] = useState(topic === "Меблі" ? "Меблі" : "Міжкімнатні");
-  const [sent, setSent] = useState(false);
+  const [f, setF] = useState({ name: "", phone: "", email: "", message: "" });
+  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [error, setError] = useState("");
+  const field = (k: keyof typeof f) => ({
+    value: f[k],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setF((s) => ({ ...s, [k]: e.target.value })); setError(""); },
+  });
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (status === "sending") return;
+    const name = f.name.trim(), phone = f.phone.trim(), email = f.email.trim();
+    if (!name) return setError("Вкажіть, будь ласка, ім’я.");
+    if (!phoneOk(phone)) return setError(PHONE_HINT);
+    const message = [`Тема: ${t}`, f.message.trim()].filter(Boolean).join("\n");
+    setStatus("sending");
+    setError("");
+    try {
+      if (t === "Меблі") await submitFurnitureInquiry({ name, phone, email, message });
+      else await submitGeneralInquiry({ name, phone, email, message });
+      setStatus("sent");
+    } catch (err) {
+      setError(err instanceof FormError ? err.message : "Не вдалося надіслати запит. Спробуйте ще раз.");
+      setStatus("idle");
+    }
+  };
+
+  const sending = status === "sending";
   return (
     <AnimatePresence mode="wait">
-      {!sent ? (
-        <motion.form key="f" className="qf" exit={{ opacity: 0, y: -20 }} onSubmit={(e) => { e.preventDefault(); setSent(true); }}>
+      {status !== "sent" ? (
+        <motion.form key="f" className="qf" exit={{ opacity: 0, y: -20 }} onSubmit={submit} noValidate>
           <div className="qf-topics">
             {topics.map((x) => (
               <button type="button" key={x} className={`chip-btn ${t === x ? "is-on" : ""}`} onClick={() => setT(x)}>
@@ -21,17 +52,18 @@ export function QuoteForm({ topic = "Двері" }: { topic?: string }) {
               </button>
             ))}
           </div>
-          <label className="fl"><input placeholder=" " required /><span>Ім’я *</span><i /></label>
-          <label className="fl"><input type="tel" placeholder=" " required /><span>Телефон *</span><i /></label>
-          <label className="fl"><input type="email" placeholder=" " /><span>Email</span><i /></label>
-          <label className="fl fl--area"><textarea placeholder=" " rows={3} /><span>Розміри, матеріали, терміни…</span><i /></label>
-          <Magnetic><button className="pill pill--signal qf-send" type="submit">Надіслати запит <span>→</span></button></Magnetic>
+          <label className="fl"><input placeholder=" " required autoComplete="name" maxLength={120} {...field("name")} /><span>Ім’я *</span><i /></label>
+          <label className="fl"><input type="tel" placeholder=" " required autoComplete="tel" inputMode="tel" maxLength={40} {...field("phone")} /><span>Телефон *</span><i /></label>
+          <label className="fl"><input type="email" placeholder=" " autoComplete="email" maxLength={160} {...field("email")} /><span>Email</span><i /></label>
+          <label className="fl fl--area"><textarea placeholder=" " rows={3} maxLength={4000} {...field("message")} /><span>Розміри, матеріали, терміни…</span><i /></label>
+          {error && <p className="form-err" role="alert">{error}</p>}
+          <Magnetic><button className="pill pill--signal qf-send" type="submit" disabled={sending}>{sending ? "Надсилаємо…" : <>Надіслати запит <span>→</span></>}</button></Magnetic>
         </motion.form>
       ) : (
-        <motion.div key="ok" className="qf-ok" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}>
+        <motion.div key="ok" className="qf-ok" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} role="status">
           <span className="qf-check">✓</span>
           <h3>Запит прийнято</h3>
-          <p>Менеджер зв’яжеться з вами найближчим часом.<br /><span className="muted mono">(прототип — нічого не надсилається)</span></p>
+          <p>Дякуємо, {f.name.trim()}! Менеджер зателефонує на {f.phone.trim()} найближчим часом.</p>
         </motion.div>
       )}
     </AnimatePresence>

@@ -6,7 +6,8 @@ import { uah } from "../lib/data";
 import { TLink } from "../lib/nav";
 import {
   useApi, productsUrl, img, fetchPrice, tGroup, tCtrl, tOpt,
-  type ApiProduct, type Schema, type Ctrl, type Price,
+  submitQuote, loadPromoCode, phoneOk, PHONE_HINT, FormError,
+  type ApiProduct, type Schema, type Ctrl, type Price, type QuoteResult,
 } from "../lib/api";
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -94,7 +95,16 @@ export function CustomizerPage({ kind }: { kind: "interior" | "concealed" }) {
   const [price, setPrice] = useState<Price | null>(null);
   const [priceErr, setPriceErr] = useState("");
   const [quote, setQuote] = useState(false);
-  const [sent, setSent] = useState(false);
+  // Quote request form (POST /api/quotes). Inputs survive closing the modal; the result is per request.
+  const [qf, setQf] = useState(() => ({ name: "", phone: "", email: "", notes: "", promoCode: loadPromoCode() }));
+  const [sending, setSending] = useState(false);
+  const [quoteErr, setQuoteErr] = useState("");
+  const [sent, setSent] = useState<QuoteResult | null>(null);
+  const qField = (k: keyof typeof qf) => ({
+    value: qf[k],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setQf((s) => ({ ...s, [k]: e.target.value })); setQuoteErr(""); },
+  });
+  const closeQuote = () => { if (sending) return; setQuote(false); setSent(null); setQuoteErr(""); };
 
   useEffect(() => { if (controls.length) setSel(Object.fromEntries(controls.map((c) => [c.id, initial(c)]))); }, [controls]);
 
@@ -124,6 +134,28 @@ export function CustomizerPage({ kind }: { kind: "interior" | "concealed" }) {
   const angle = (right ? 1 : -1) * (inside ? -72 : 72);
   const lines = (price?.breakdown ?? []).filter((b) => b.deltaCents !== 0);
   const total = price ? Math.round(price.totalPriceCents / 100) : product ? Math.round((product.convertedPriceCents ?? 0) / 100) : 0;
+
+  const sendQuote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (sending || !slug) return;
+    const name = qf.name.trim(), phone = qf.phone.trim();
+    if (!name) return setQuoteErr("Вкажіть, будь ласка, ім’я.");
+    if (!phoneOk(phone)) return setQuoteErr(PHONE_HINT);
+    setSending(true);
+    setQuoteErr("");
+    try {
+      const r = await submitQuote({
+        productSlug: slug, selections: sel,
+        customer: { name, phone, email: qf.email.trim() },
+        notes: qf.notes.trim(), promoCode: qf.promoCode.trim(),
+      });
+      setSent(r);
+    } catch (err) {
+      setQuoteErr(err instanceof FormError ? err.message : "Не вдалося надіслати запит. Спробуйте ще раз.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   const loading = list.loading || schemaRes.loading;
   const failed = list.error || schemaRes.error;
@@ -230,23 +262,31 @@ export function CustomizerPage({ kind }: { kind: "interior" | "concealed" }) {
 
       <AnimatePresence>
         {quote && (
-          <motion.div className="promo-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { delay: 0.3 } }} onClick={() => setQuote(false)}>
+          <motion.div className="promo-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { delay: 0.3 } }} onClick={closeQuote}>
             <motion.div className="promo promo--quote" onClick={(e) => e.stopPropagation()}
               initial={{ rotateY: -95, opacity: 0 }} animate={{ rotateY: 0, opacity: 1, transition: { duration: 1.1, ease } }}
               exit={{ rotateY: -95, opacity: 0, transition: { duration: 0.6 } }} style={{ transformOrigin: "left center", transformPerspective: 1400 }}>
               <div className="promo-body">
-                <button className="promo-x" onClick={() => setQuote(false)} aria-label="Закрити">✕</button>
+                <button className="promo-x" onClick={closeQuote} aria-label="Закрити">✕</button>
                 <p className="mono eyebrow">( Кошторис )</p>
                 <h3>{product?.name.trim()}<br /><i className="serif">{uah(total)}</i></h3>
                 {!sent ? (
-                  <form className="promo-form" onSubmit={(e) => { e.preventDefault(); setSent(true); }}>
+                  <form className="promo-form" onSubmit={sendQuote} noValidate>
                     <p>{w}×{h} мм · {valueLabel(controls.find((c) => c.id === "opening") ?? { id: "opening", type: "select" }, opening)}. Менеджер перевірить конфігурацію та зв’яжеться з вами.</p>
-                    <input placeholder="Ім’я" required />
-                    <input type="tel" placeholder="+380 __ ___ __ __" required />
-                    <button className="pill pill--signal" type="submit">Надіслати →</button>
+                    <input placeholder="Ім’я *" required autoComplete="name" maxLength={120} aria-label="Ім’я" {...qField("name")} />
+                    <input type="tel" placeholder="Телефон * +380 __ ___ __ __" required autoComplete="tel" inputMode="tel" maxLength={40} aria-label="Телефон" {...qField("phone")} />
+                    <input type="email" placeholder="Email (необов’язково)" autoComplete="email" maxLength={160} aria-label="Email" {...qField("email")} />
+                    <input placeholder="Промокод (якщо є)" maxLength={32} aria-label="Промокод" autoCapitalize="characters" {...qField("promoCode")} />
+                    <textarea placeholder="Коментар (необов’язково)" rows={2} maxLength={2000} aria-label="Коментар" {...qField("notes")} />
+                    {quoteErr && <p className="form-err" role="alert">{quoteErr}</p>}
+                    <button className="pill pill--signal" type="submit" disabled={sending}>{sending ? "Надсилаємо…" : "Надіслати →"}</button>
                   </form>
                 ) : (
-                  <div className="promo-ok"><p>Дякуємо! (прототип — запит не надсилається на сервер)</p></div>
+                  <div className="promo-ok" role="status">
+                    <p><b>Запит №{String(sent.quoteId).slice(-6).toUpperCase()} прийнято.</b></p>
+                    <p>Сума за кошторисом: <b>{uah(Math.round(sent.totalPriceCents / 100))}</b>{sent.discountCents ? ` (знижка ${uah(Math.round(sent.discountCents / 100))})` : ""}.</p>
+                    <p>Менеджер перевірить конфігурацію та зателефонує на {qf.phone.trim()} протягом робочого дня.</p>
+                  </div>
                 )}
               </div>
             </motion.div>

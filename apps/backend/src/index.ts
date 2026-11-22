@@ -1801,9 +1801,16 @@ app.post("/api/upload", async (req, res) => {
 app.post("/api/contact/general", async (req, res) => {
   try {
     const { name, email, phone, message } = req.body ?? {};
-    if (!name || !email) return res.status(400).json({ error: "name and email are required" });
+    // Name plus at least one way to reach the customer (the site's phone-only forms send no email).
+    if (!name || (!email && !phone)) return res.status(400).json({ error: "name and email or phone are required" });
     const inquiry = await prisma.inquiry.create({
-      data: { type: "GENERAL", name: String(name), email: String(email), phone: phone ?? null, message: message ?? null },
+      data: {
+        type: "GENERAL",
+        name: String(name),
+        email: email ? String(email) : null,
+        phone: phone ? String(phone) : null,
+        message: message ? String(message) : null,
+      },
     });
     res.status(201).json({ id: inquiry.id, createdAt: inquiry.createdAt });
   } catch (error) {
