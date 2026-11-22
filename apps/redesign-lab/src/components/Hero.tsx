@@ -85,7 +85,7 @@ export default function Hero() {
 
       <div className="hero-after">
         <h2><SplitChars text="Виготовлені під ваш простір" /></h2>
-        <p className="hero-after-sub">Кожні двері — під точний розмір вашого отвору. Від класики до полотен врівень зі стіною.</p>
+        <p className="hero-after-sub">Ми не продаємо двері зі складу. Кожну модель виготовляємо під ваш інтер’єр і комплектуємо фурнітурою.</p>
       </div>
     </section>
   );

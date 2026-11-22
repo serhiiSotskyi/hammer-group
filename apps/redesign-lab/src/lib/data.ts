@@ -49,7 +49,7 @@ export const recentQuotes = [
 ];
 
 export const collections = [
-  { n: "01", title: "Міжкімнатні двері", sub: "Класика та модерн", image: "/img/white-living.jpg", meta: "Масив · Шпон · Емаль", to: "/interior-doors" },
+  { n: "01", title: "Міжкімнатні двері", sub: "Класика та модерн", image: "/img/white-living.jpg", meta: "ПВХ · Шпон · Емаль", to: "/interior-doors" },
   { n: "02", title: "Приховані двері", sub: "Врівень зі стіною", image: "/img/corridor.jpg", meta: "Приховані петлі · Магнітний замок", to: "/concealed-doors" },
   { n: "03", title: "Корпусні меблі", sub: "Кухні, шафи, гардеробні", image: "/img/kitchen.jpg", meta: "Під розмір · Власне виробництво", to: "/cabinet-furniture" },
   { n: "04", title: "Конфігуратор", sub: "Зберіть свої двері", image: "/img/oak-flush.jpg", meta: "Ціна онлайн · 24 год прорахунок", to: "/customizer" },
@@ -75,21 +75,21 @@ export type Product = {
 export const catalog: Record<string, { title: string; accent: string; lead: string; image: string; filters: string[]; products: Product[] }> = {
   classic: {
     title: "Класика", accent: "що не старіє",
-    lead: "Філенки, молдинги, натуральний шпон і масив. Пропорції, перевірені століттями, — у розмір вашого отвору.",
+    lead: "Класичні форми, які не старіють. Виразний декор, що додає інтер’єру затишку та солідності.",
     image: "/img/classic.jpg",
-    filters: ["Усі", "Шпон", "Масив", "Емаль"],
+    filters: ["Усі", "Шпон", "ПВХ", "Емаль"],
     products: [
       { slug: "classic-oak", name: "Класичний дуб", image: "/img/classic-oak.jpg", price: 13900, oldPrice: 16200, finish: "Шпон", tag: "ХІТ", note: "3 філенки · дуб натур" },
-      { slug: "heritage", name: "Heritage", image: "/img/classic.jpg", price: 21500, finish: "Масив", note: "Вітражне скло · бічні панелі" },
+      { slug: "heritage", name: "Heritage", image: "/img/classic.jpg", price: 21500, finish: "ПВХ", note: "Вітражне скло · бічні панелі" },
       { slug: "milano-white", name: "Milano White", image: "/img/white-living.jpg", price: 11900, oldPrice: 13400, finish: "Емаль", tag: "−%", note: "Молдинг · біла емаль" },
       { slug: "verona", name: "Verona", image: "/img/classic-oak.jpg", price: 15400, finish: "Шпон", note: "Шпон горіха · патина" },
-      { slug: "palazzo", name: "Palazzo", image: "/img/classic.jpg", price: 24800, finish: "Масив", tag: "НОВИНКА", note: "Двостулкові · масив дуба" },
+      { slug: "palazzo", name: "Palazzo", image: "/img/classic.jpg", price: 24800, finish: "ПВХ", tag: "НОВИНКА", note: "Двостулкові" },
       { slug: "ivory", name: "Ivory Line", image: "/img/white-living.jpg", price: 12600, finish: "Емаль", note: "Слонова кістка · латунь" },
     ],
   },
   modern: {
     title: "Модерн", accent: "чисті лінії",
-    lead: "Гладкі полотна, тонкі алюмінієві торці, графіт і натуральний дуб. Мінімум деталей — максимум точності.",
+    lead: "Простота, яка виглядає дорого. Чисті лінії, точна геометрія і жодного зайвого декору.",
     image: "/img/oak-warm.jpg",
     filters: ["Усі", "Шпон", "Емаль", "Скло"],
     products: [

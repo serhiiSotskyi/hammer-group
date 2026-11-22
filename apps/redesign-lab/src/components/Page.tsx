@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { gsap, SplitChars, Magnetic } from "../lib/motion";
 import { useDoor, TLink, PAGE_NAMES } from "../lib/nav";
@@ -42,12 +42,25 @@ export function PageHero({ index, crumbs, title, accent, lead, image, children, 
   );
 }
 
-/* ── Image that shows door cut-outs whole (contain) and room photos full-bleed (cover) ── */
-export function SmartImg({ src, alt }: { src: string; alt: string }) {
+/* ── Image that shows door cut-outs whole (contain) and room photos full-bleed (cover).
+   With `fitWide`, landscape room shots (doors often sit at the far edges) are never
+   cropped: they get a blurred copy of themselves as backdrop and their own aspect
+   ratio on single-column (mobile) grids. ── */
+export function SmartImg({ src, alt, fitWide = false }: { src: string; alt: string; fitWide?: boolean }) {
   const [cut, setCut] = useState(false);
+  const [ratio, setRatio] = useState(0);
+  const wide = fitWide && ratio >= 1.2;
   return (
-    <img src={src} alt={alt} loading="lazy" className={cut ? "is-cutout" : ""}
-      onLoad={(e) => { const i = e.currentTarget; setCut(i.naturalHeight > i.naturalWidth * 1.6); }} />
+    <>
+      {wide && <img src={src} alt="" aria-hidden="true" className="si-backdrop" />}
+      <img src={src} alt={alt} loading="lazy" className={cut ? "is-cutout" : wide ? "is-wide" : ""}
+        style={wide ? ({ "--ar": Math.min(ratio, 1.6).toFixed(3) } as CSSProperties) : undefined}
+        onLoad={(e) => {
+          const i = e.currentTarget;
+          setCut(i.naturalHeight > i.naturalWidth * 1.6);
+          if (i.naturalHeight) setRatio(i.naturalWidth / i.naturalHeight);
+        }} />
+    </>
   );
 }
 
@@ -75,7 +88,7 @@ export function ProductCard({ p, to, i = 0 }: { p: Product; to: string; i?: numb
       <TLink to={to} cursor="Налаштувати" className="pc-link">
         <div ref={ref} className="pc">
           <div className="pc-img">
-            <SmartImg src={p.image} alt={p.name} />
+            <SmartImg src={p.image} alt={p.name} fitWide />
             <span className="pc-glare" />
             {p.tag && <span className={`sticker sticker--${p.tag === "ХІТ" ? "hit" : p.tag === "НОВИНКА" ? "new" : "sale"}`}>{p.tag === "−%" ? `−${off}%` : p.tag}</span>}
             <span className="pc-cta mono">Налаштувати →</span>

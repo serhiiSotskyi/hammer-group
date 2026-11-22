@@ -8,7 +8,7 @@ import { useApi, productsUrl, toCard, img, customizerPath, type ApiCollection, t
 
 const services = [
   { n: "01", title: "Під розмір", text: "Виготовляємо полотна під фактичний отвір — стандартні й нестандартні висоти, ширини та товщини стін.", image: "/img/classic-oak.jpg" },
-  { n: "02", title: "Матеріали та фурнітура", text: "Шпон, емаль, масив, скло. Петлі, замки й ручки, які підходять саме вашій моделі.", image: "/img/oak-warm.jpg" },
+  { n: "02", title: "Матеріали та фурнітура", text: "Шпон, емаль, ПВХ, скло. Петлі, замки й ручки, які підходять саме вашій моделі.", image: "/img/oak-warm.jpg" },
   { n: "03", title: "Замір і прорахунок", text: "Приїжджаємо на замір, допомагаємо з вибором і готуємо прорахунок перед запуском у виробництво.", image: "/img/white-living.jpg" },
 ];
 
@@ -21,7 +21,7 @@ export function InteriorPage() {
   return (
     <>
       <PageHero index="01" crumbs={["Головна", "Міжкімнатні двері"]} title="Міжкімнатні" accent="двері на замовлення"
-        lead="Дві колекції — класика й модерн. Обидві виготовляємо в Одесі під ваш розмір, з вашим оздобленням і фурнітурою."
+        lead="Класика чи модерн — обирайте свою колекцію. Кожні двері робимо під ваш розмір та інтер’єр і комплектуємо фурнітурою, підібраною саме під них."
         image="/img/white-living.jpg" />
       <section className="split">
         <div className="sec-head"><p className="mono eyebrow">( Оберіть колекцію )</p></div>
@@ -41,7 +41,7 @@ export function InteriorPage() {
           })}
         </div>
       </section>
-      <VelocityMarquee text="Шпон · Емаль · Масив · Скло · Під фарбування" />
+      <VelocityMarquee text="Шпон · Емаль · ПВХ · Скло · Під фарбування" />
       <StackCards eyebrow="( Як ми працюємо )" title={<>Двері під ваш <i className="serif">проєкт</i></>} items={services} />
       <NextPage to="/concealed-doors" image="/img/corridor.jpg" />
     </>
