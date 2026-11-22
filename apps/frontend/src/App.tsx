@@ -33,15 +33,27 @@ import RequireAdmin from "@/components/admin/RequireAdmin";
 
 
 
+// In the combined production build this app only serves /admin (built with --base=/admin-app/);
+// the public site is the redesign, so hide the old public navigation and footer there.
+const ADMIN_ONLY = import.meta.env.BASE_URL === "/admin-app/";
+
+function AdminOnlyBar() {
+  return (
+    <div className="fixed top-0 inset-x-0 z-50 h-14 flex items-center justify-between px-6 bg-white/95 backdrop-blur border-b">
+      <a href="/admin/quotes" className="font-semibold tracking-tight">Hammer Group · Адмін-панель</a>
+      <a href="/" className="text-sm text-muted-foreground hover:text-foreground">← На сайт</a>
+    </div>
+  );
+}
+
 function App() {
   return (
     <div className="min-h-screen">
-      <SEO />
-      {/* ✅ Navigation always visible */}
-      <Navigation />
+      {!ADMIN_ONLY && <SEO />}
+      {ADMIN_ONLY ? <AdminOnlyBar /> : <Navigation />}
 
       {/* ✅ Page content */}
-      <div className="pt-20"> 
+      <div className={ADMIN_ONLY ? "pt-14" : "pt-20"}> 
         {/* add padding so content isn't hidden under fixed navbar */}
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -73,8 +85,7 @@ function App() {
 
         </Routes>
       </div>
-      {/* ✅ Footer always visible */}
-      <Footer />
+      {!ADMIN_ONLY && <Footer />}
     </div>
   );
 }
