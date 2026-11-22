@@ -25,7 +25,7 @@ export function Loader({ onDone }: { onDone: () => void }) {
   return (
     <div ref={root} className="loader">
       <div className="loader-l" /><div className="loader-r" />
-      <p className="loader-brand mono">HAMMER GROUP — ЛАБОРАТОРІЯ РЕДИЗАЙНУ</p>
+      <p className="loader-brand mono">HAMMER GROUP</p>
       <div className="loader-count">{String(n).padStart(3, "0")}</div>
       <div className="loader-bar" />
     </div>
@@ -106,7 +106,6 @@ export function Nav() {
           ))}
         </nav>
         <div className="nav-right">
-          <span className="mono nav-lang">UA / EN</span>
           <Magnetic><TLink to="/contact" className="pill pill--light">Прорахувати</TLink></Magnetic>
           <button className={`burger ${open ? "is-open" : ""}`} onClick={() => setOpen(!open)} aria-label="Меню"><i /><i /></button>
         </div>

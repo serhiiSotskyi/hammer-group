@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useSmoothScroll, refreshScroll } from "./lib/motion";
-import { DoorTransition, PAGE_NAMES } from "./lib/nav";
+import { DoorTransition, applySeo, normalizePath } from "./lib/nav";
 import { Loader, Cursor, Ticker, Nav } from "./components/Chrome";
 import Hero from "./components/Hero";
 import { VelocityMarquee, Collections, TopSales, DealOfWeek, Stats, Craft, Contact } from "./components/Sections";
@@ -31,7 +31,7 @@ function Shell({ ready }: { ready: boolean }) {
   const { pathname } = useLocation();
   const isCustomizer = pathname.includes("customizer");
   useEffect(() => {
-    document.title = `${PAGE_NAMES[pathname] ?? "Hammer Group"} — Hammer Group · Лабораторія редизайну`;
+    applySeo(pathname);
     const t = setTimeout(refreshScroll, 400);
     return () => clearTimeout(t);
   }, [pathname]);
@@ -50,10 +50,12 @@ function Shell({ ready }: { ready: boolean }) {
           <Route path="/cabinet-furniture" element={<FurniturePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          {/* Live-site /doors was a doors overview canonicalised to /interior-doors/. */}
+          <Route path="/doors" element={<Navigate to="/interior-doors" replace />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
-      <Contact key={`f-${pathname}`} showCta={pathname !== "/contact" && !isCustomizer} />
+      <Contact key={`f-${pathname}`} showCta={normalizePath(pathname) !== "/contact" && !isCustomizer} />
       {ready && <PromoPopup />}
       {ready && <ActivityToasts />}
     </>

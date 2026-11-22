@@ -440,7 +440,7 @@ export function Contact({ showCta = true }: { showCta?: boolean }) {
       <footer className="footer">
         <span className="mono">© {new Date().getFullYear()} Hammer Group</span>
         <span className="mono">Двері та меблі власного виробництва</span>
-        <span className="mono">Лабораторія редизайну — локальний прототип</span>
+        <span className="mono">Одеса · {CONTACT.street}</span>
       </footer>
     </section>
   );
