@@ -106,6 +106,12 @@ export default function QuotesAdmin() {
                   <div className="text-sm">{t('common.basePrice', { defaultValue: 'База' })}: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.basePriceCents / 100)}</div>
                   <div className="text-sm">{t('common.adjustments', { defaultValue: 'Надбавки' })}: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.adjustmentsCents / 100)}</div>
                   <div className="text-sm font-medium">{t('common.total', { defaultValue: 'Разом' })}: {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(active.totalPriceCents / 100)}</div>
+                  {(active.promotion || active.promoCode) && (
+                    <div className="text-sm text-amber-800">
+                      {active.promotion && <>Акція: {active.promotion.title}{active.discountCents ? ` (−${new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 }).format(active.discountCents / 100)} ₴)` : ""}</>}
+                      {active.promoCode && <> · Промокод: <strong>{active.promoCode}</strong></>}
+                    </div>
+                  )}
                 </Card>
               </div>
               {/* Selections */}

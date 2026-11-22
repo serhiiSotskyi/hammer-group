@@ -26,6 +26,7 @@ import GeneralQuotesAdmin from "./pages/admin/GeneralQuotesAdmin";
 import CurrenciesAdmin from "./pages/admin/CurrenciesAdmin";
 import PricingAdmin from "./pages/admin/PricingAdmin";
 import PricingConcealed from "./pages/admin/PricingConcealed";
+import PromotionsAdmin from "./pages/admin/PromotionsAdmin";
 import AdminLogin from "./pages/admin/Login";
 import RequireAdmin from "@/components/admin/RequireAdmin";
 
@@ -67,6 +68,7 @@ function App() {
               <Route path="currencies" element={<CurrenciesAdmin />} />
               <Route path="pricing" element={<PricingAdmin />} />
               <Route path="pricing-concealed" element={<PricingConcealed />} />
+              <Route path="promotions" element={<PromotionsAdmin />} />
             </Route>
 
         </Routes>

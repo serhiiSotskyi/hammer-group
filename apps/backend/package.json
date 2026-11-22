@@ -12,7 +12,8 @@
     "generate": "prisma generate",
     "studio": "prisma studio",
     "seed": "prisma db seed",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "node -r ts-node/register --test src/services/*.test.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
