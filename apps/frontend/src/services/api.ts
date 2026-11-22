@@ -270,6 +270,10 @@ export const createInteriorQuote = async (
 export type AdminQuote = {
   id: string;
   createdAt: string;
+  promotionId?: number | null;
+  promotion?: { id: number; title: string; kind: PromotionKind; value: number | null } | null;
+  discountCents?: number | null;
+  promoCode?: string | null;
   product: ProductResponse;
   categoryId: number;
   basePriceCents: number;
@@ -392,3 +396,53 @@ export const resolveImageUrl = (url?: string | null) => {
   // Unknown format: let caller fallback to placeholder
   return null;
 };
+
+// ── Promotions (admin) ────────────────────────────────────────────────────
+export type PromotionKind = "PERCENT" | "AMOUNT_OFF" | "ANNOUNCEMENT";
+export type AdminPromotion = {
+  id: number;
+  title: string;
+  subtitle: string | null;
+  kind: PromotionKind;
+  value: number | null; // PERCENT: %, AMOUNT_OFF: USD cents
+  categoryId: number | null;
+  collectionId: number | null;
+  products: { product: { id: number; name: string; slug: string } }[];
+  category: { id: number; name: string; slug: string } | null;
+  collection: { id: number; name: string; slug: string } | null;
+  startsAt: string;
+  endsAt: string | null;
+  showInTicker: boolean;
+  isDealOfWeek: boolean;
+  showPopup: boolean;
+  popupCode: string | null;
+  imageUrl: string | null;
+  priority: number;
+  isActive: boolean;
+  _count?: { quotes: number };
+};
+export type PromotionInput = Omit<AdminPromotion, "id" | "products" | "category" | "collection" | "_count"> & { productIds: number[] };
+
+const adminJson = async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
+  const res = await fetch(`${API_URL}/admin${path}`, {
+    ...init,
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...authHeaders(), ...(init.headers ?? {}) },
+  });
+  if (res.status === 204) return undefined as T;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg = body?.errors?.join(", ") || body?.error || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return body as T;
+};
+
+export const listPromotions = () => adminJson<AdminPromotion[]>("/promotions");
+export const savePromotion = (input: PromotionInput, id?: number) =>
+  adminJson<AdminPromotion>(id ? `/promotions/${id}` : "/promotions", { method: id ? "PUT" : "POST", body: JSON.stringify(input) });
+export const deletePromotion = (id: number) => adminJson<void>(`/promotions/${id}`, { method: "DELETE" });
+export const getFeaturedProducts = () =>
+  adminJson<{ id: number; name: string; slug: string; imageUrl: string | null; featuredRank: number; isActive: boolean }[]>("/featured");
+export const setFeaturedProducts = (productIds: number[]) =>
+  adminJson<{ productIds: number[] }>("/featured", { method: "PUT", body: JSON.stringify({ productIds }) });

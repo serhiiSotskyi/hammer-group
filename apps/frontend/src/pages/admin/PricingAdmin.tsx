@@ -242,8 +242,12 @@ export default function PricingAdmin() {
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {['standard','complanar','inside'].map((opt) => (
             <div key={opt}>
-              <label className="text-sm block mb-1">{{standard:'Стандарт', complanar:'Компланарний', inside:'Inside'}[opt as 'standard'|'complanar'|'inside'] || opt} (USD)</label>
-              <Input defaultValue={getTierUSD('frame','frameType',opt,'below')} onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'frame', controlId: 'frameType', optionId: opt, controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(e.target.value), aboveUSD: Number(getTierUSD('frame','frameType',opt,'above')) })} />
+              <label className="text-sm block mb-1">{{standard:'Стандарт', complanar:'Компланарний', inside:'Inside'}[opt as 'standard'|'complanar'|'inside'] || opt} (USD, усі висоти)</label>
+              {/* One frame price for every height: the form used to save only the ≤2100 tier, leaving >2100 at $0. */}
+              <Input defaultValue={getTierUSD('frame','frameType',opt,'below')} onBlur={(e) => upsert.mutate({ action: 'upsertOptionTiered', groupId: 'frame', controlId: 'frameType', optionId: opt, controlRefId: 'heightMm', threshold: 2100, belowUSD: Number(e.target.value), aboveUSD: Number(e.target.value) })} />
+              {Number(getTierUSD('frame','frameType',opt,'above')) !== Number(getTierUSD('frame','frameType',opt,'below')) && (
+                <p className="text-xs text-amber-600 mt-1">Для дверей понад 2100 мм зараз ${getTierUSD('frame','frameType',opt,'above')}. Збережіть поле, щоб ціна діяла для всіх висот.</p>
+              )}
             </div>
           ))}
         </CardContent>
