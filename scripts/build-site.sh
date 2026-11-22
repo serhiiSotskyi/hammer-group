@@ -76,7 +76,6 @@ cat > "$DIST/staticwebapp.config.json" <<EOF
 {
   "routes": [
     { "route": "/doors", "redirect": "/interior-doors/", "statusCode": 301 },
-    { "route": "/doors/", "redirect": "/interior-doors/", "statusCode": 301 },
     { "route": "/admin", "rewrite": "/admin-app/index.html", "headers": { "Cache-Control": "no-cache", "X-Robots-Tag": "noindex, nofollow" } },
     { "route": "/admin/*", "rewrite": "/admin-app/index.html", "headers": { "Cache-Control": "no-cache", "X-Robots-Tag": "noindex, nofollow" } },
     { "route": "/admin-app/assets/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
